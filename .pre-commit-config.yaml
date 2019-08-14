@@ -1,0 +1,8 @@
+- repo: local
+  hooks:
+    - id: black
+      name: black
+      language: docker_image
+      entry: --entrypoint black kiwicom/black:19.3b0
+      types: [python]
+      args: [--check, --fast]
