@@ -1,0 +1,5 @@
+attr
+typing
+simplejson
+requests
+structlog
