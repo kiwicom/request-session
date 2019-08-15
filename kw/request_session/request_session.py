@@ -18,7 +18,8 @@ import requests.adapters
 import simplejson as json
 import structlog
 
-from . import urljoin
+from _compat import urljoin
+
 from .. import sentry_client, statsd
 
 Timeout = namedtuple("Timeout", ["connection_timeout", "read_timeout"])
