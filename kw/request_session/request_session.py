@@ -2,7 +2,14 @@
 from collections import namedtuple
 import sys
 import time
-from typing import Any, Dict, List, Optional, Tuple, Union  # pylint: disable=unused-import
+from typing import (  # pylint: disable=unused-import
+    Any,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import attr
 import ddtrace
@@ -247,18 +254,25 @@ class RequestSession(object):
         # type: (...) -> Optional[requests.Response]
         r"""Delete request against a service.
 
-        :param str path: url path, will be combined with ``self.host`` to build whole request url
-        :param str request_category: (optional) category for log and metric reporting, can be set on client init
-        :param int max_retries: (optional) number of retries if the execution fail with server error
+        :param str path: url path, will be combined with ``self.host`` to build whole
+            request url
+        :param str request_category: (optional) category for log and metric reporting,
+            can be set on client init
+        :param int max_retries: (optional) number of retries if the execution fail with
+            server error
         :param bool report: (optional) report request exceptions to error_lib.swallow
-        :param float sleep_before_repeat: (optional) seconds to sleep before another retry
+        :param float sleep_before_repeat: (optional) seconds to sleep before another
+            retry
         :param list tags: (optional) tags for Datadog
-        :param bool raise_for_status: (optional) raise an exception in case of an error response
-        :param \*\*request_kwargs: Optional arguments that request takes. Check `_process()` for more info.
+        :param bool raise_for_status: (optional) raise an exception in case of an error
+            response
+        :param \*\*request_kwargs: Optional arguments that request takes.
+            Check `_process()` for more info.
 
         :return: http response object
 
-        :raises requests.RequestException: server error on operation (if raise_for_status is True)
+        :raises requests.RequestException: server error on operation
+            (if raise_for_status is True)
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path)
@@ -288,18 +302,25 @@ class RequestSession(object):
         # type: (...) -> Optional[requests.Response]
         r"""Get request against a service.
 
-        :param str path: url path, will be combined with ``self.host`` to build whole request url
-        :param str request_category: (optional) category for log and metric reporting, can be set on client init
-        :param int max_retries: (optional) number of retries if the execution fail with server error
+        :param str path: url path, will be combined with ``self.host`` to build whole
+            request url
+        :param str request_category: (optional) category for log and metric reporting,
+            can be set on client init
+        :param int max_retries: (optional) number of retries if the execution fail with
+            server error
         :param bool report: (optional) report request exceptions to error_lib.swallow
-        :param float sleep_before_repeat: (optional) seconds to sleep before another retry
+        :param float sleep_before_repeat: (optional) seconds to sleep before another
+            retry
         :param list tags: (optional) tags for Datadog
-        :param bool raise_for_status: (optional) raise an exception in case of an error response
-        :param \*\*request_kwargs: Optional arguments that request takes. Check `_process()` for more info.
+        :param bool raise_for_status: (optional) raise an exception in case of an error
+            response
+        :param \*\*request_kwargs: Optional arguments that request takes.
+            Check `_process()` for more info.
 
         :return: http response object
 
-        :raises requests.RequestException: server error on operation (if raise_for_status is True)
+        :raises requests.RequestException: server error on operation
+            (if raise_for_status is True)
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path)
@@ -329,18 +350,25 @@ class RequestSession(object):
         # type: (...) -> Optional[requests.Response]
         r"""Post request against a service.
 
-        :param str path: url path, will be combined with ``self.host`` to build whole request url
-        :param str request_category: (optional) category for log and metric reporting, can be set on client init
-        :param int max_retries: (optional) number of retries if the execution fail with server error
+        :param str path: url path, will be combined with ``self.host`` to build whole
+            request url
+        :param str request_category: (optional) category for log and metric reporting,
+            can be set on client init
+        :param int max_retries: (optional) number of retries if the execution fail with
+            server error
         :param bool report: (optional) report request exceptions to error_lib.swallow
-        :param float sleep_before_repeat: (optional) seconds to sleep before another retry
+        :param float sleep_before_repeat: (optional) seconds to sleep before another
+            retry
         :param list tags: (optional) tags for Datadog
-        :param bool raise_for_status: (optional) raise an exception in case of an error response
-        :param \*\*request_kwargs: Optional arguments that request takes.  Check `_process()` for more info.
+        :param bool raise_for_status: (optional) raise an exception in case of an error
+        response
+        :param \*\*request_kwargs: Optional arguments that request takes.
+            Check `_process()` for more info.
 
         :return: http response object
 
-        :raises requests.RequestException: server error on operation (if raise_for_status is True)
+        :raises requests.RequestException: server error on operation
+            (if raise_for_status is True)
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path)
@@ -370,18 +398,25 @@ class RequestSession(object):
         # type: (...) -> Optional[requests.Response]
         r"""Put request against a service.
 
-        :param str path: url path, will be combined with ``self.host`` to build whole request url
-        :param str request_category: (optional) category for log and metric reporting, can be set on client init
-        :param int max_retries: (optional) number of retries if the execution fail with server error
+        :param str path: url path, will be combined with ``self.host`` to build whole
+            request url
+        :param str request_category: (optional) category for log and metric reporting,
+            can be set on client init
+        :param int max_retries: (optional) number of retries if the execution fail with
+            server error
         :param bool report: (optional) report request exceptions to error_lib.swallow
-        :param float sleep_before_repeat: (optional) seconds to sleep before another retry
+        :param float sleep_before_repeat: (optional) seconds to sleep before another
+            retry
         :param list tags: (optional) tags for Datadog
-        :param bool raise_for_status: (optional) raise an exception in case of an error response
-        :param \*\*request_kwargs: Optional arguments that request takes.  Check `_process()` for more info.
+        :param bool raise_for_status: (optional) raise an exception in case of an
+            error response
+        :param \*\*request_kwargs: Optional arguments that request takes.
+            Check `_process()` for more info.
 
         :return: http response object
 
-        :raises requests.RequestException: server error on operation (if raise_for_status is True)
+        :raises requests.RequestException: server error on operation
+            (if raise_for_status is True)
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path)
@@ -414,38 +449,48 @@ class RequestSession(object):
 
         :param str request_type: `post` or `get`
         :param str url: URL for the new Request object.
-        :param str request_category: (optional) category for log and metric reporting, can be set on client init
-        :param int max_retries: number of retries if the execution fail with server error
+        :param str request_category: (optional) category for log and metric reporting,
+            can be set on client init
+        :param int max_retries: number of retries if the execution fail with server
+            error
         :param bool report: report request exceptions to error_lib.swallow
         :param float sleep_before_repeat: seconds to sleep before another retry
         :param list tags: tags for Datadog
         :param bool raise_for_status: raise an exception in case of an error response
         :param \*\*request_kwargs: Optional arguments that request takes:
 
-            * url: (optional) to override ``url`` param.
-            * params: (optional) Dictionary or bytes to be sent in the query string for the Request.
-            * data: (optional) Dictionary or list of tuples ``[(key, value)]`` (will be form-encoded), bytes,
-                    or file-like object to send in the body of the Request.
-            * json: (optional) A JSON serializable Python object to send in the body of the Request.
-            * headers: (optional) Dictionary of HTTP Headers to send with the Request.
-            * cookies: (optional) Dict or CookieJar object to send with the Request.
-            * files: (optional) Dictionary of ``'name': file-like-objects``
-            * auth: (optional) Auth tuple to enable Basic/Digest/Custom HTTP Auth.
-            * timeout: (optional) How many seconds to wait for the server to send data
-                    before giving up, as a float, or a :ref:`(connect timeout, read
-                    timeout) <timeouts>` tuple.
-            * allow_redirects: (optional) Boolean. Enable/disable GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD redirection.
-                    Defaults to ``True``.
-            * proxies: (optional) Dictionary mapping protocol to the URL of the proxy.
-            * verify: (optional) Either a boolean, in which case it controls whether we verify
-                    the server's TLS certificate, or a string, in which case it must be a path
-                    to a CA bundle to use. Defaults to ``True``.
-            * stream: (optional) if ``False``, the response content will be immediately downloaded.
-            * cert: (optional) if String, path to ssl client cert file (.pem). If Tuple, ('cert', 'key') pair.
+        * url: (optional) to override ``url`` param.
+        * params: (optional) Dictionary or bytes to be sent in the query string for
+            the Request.
+        * data: (optional) Dictionary or list of tuples ``[(key, value)]``
+            (will be form-encoded), bytes, or file-like object to send in the body of
+            the Request.
+        * json: (optional) A JSON serializable Python object to send in the body of
+            the Request.
+        * headers: (optional) Dictionary of HTTP Headers to send with the Request.
+        * cookies: (optional) Dict or CookieJar object to send with the Request.
+        * files: (optional) Dictionary of ``'name': file-like-objects``
+        * auth: (optional) Auth tuple to enable Basic/Digest/Custom HTTP Auth.
+        * timeout: (optional) How many seconds to wait for the server to send data
+            before giving up, as a float, or a :ref:`(connect timeout, read timeout)
+            <timeouts>` tuple.
+        * allow_redirects: (optional) Boolean.
+            Enable/disable GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD redirection.
+            Defaults to ``True``.
+        * proxies: (optional) Dictionary mapping protocol to the URL of the proxy.
+        * verify: (optional) Either a boolean, in which case it controls whether we
+            verify the server's TLS certificate, or a string,
+            in which case it must be a path to a CA bundle to use.
+            Defaults to ``True``.
+        * stream: (optional) if ``False``, the response content will be immediately
+            downloaded.
+        * cert: (optional) if String, path to ssl client cert file (.pem).
+            If Tuple, ('cert', 'key') pair.
 
         :return: http response object
 
-        :raises requests.RequestException: server error on operation (if raise_for_status is True)
+        :raises requests.RequestException: server error on operation
+            (if raise_for_status is True)
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         if not tags:
@@ -467,8 +512,9 @@ class RequestSession(object):
         )
 
         run, retries_on_econnreset = 0, 0
-        # this will set maximum number of retries to max_runs where econnreset retries are not counting and
-        # maximum number of of retries on econnreset is also set to max_runs
+        # this will set maximum number of retries to max_runs where econnreset retries
+        # are not counting and maximum number of of retries on econnreset is also
+        # set to max_runs
         while run < max_runs + retries_on_econnreset:
             run += 1
             try:
@@ -531,7 +577,8 @@ class RequestSession(object):
 
                         retries_on_econnreset += 1
 
-                    # try again in case of ECONNRESET, even for api client with 0 retries
+                    # try again in case of ECONNRESET,
+                    # even for api client with 0 retries
                     if (
                         run == max_runs + retries_on_econnreset
                         or max(max_runs, 2) == retries_on_econnreset
@@ -543,8 +590,8 @@ class RequestSession(object):
                         return response
 
                 else:
-                    # Client error, request is not valid and server rejected it with http 4xx, but not timeout
-                    # No point in retry
+                    # Client error, request is not valid and server rejected it with
+                    # http 4xx, but not timeout, there is no point in retrying.
                     if report:
                         response_text = self.get_response_text(response)
                         extra_data = (
@@ -662,7 +709,7 @@ class RequestSession(object):
         # type: (Optional[requests.Response]) -> Optional[int]
         """Get status code from response."""
         # Danger: do not use `if response:` syntax
-        #  bool(response) for `Response` instances with status in range > 400 returns `False`
+        # bool(response) for `Response` returns `False` when status > 400
         # check `def __bool__(self):` in `requests.models.Response`
         if response is None:
             return None

@@ -3,7 +3,7 @@ files = kw/**.py, test/**.py, *.(yml|yaml), *.md, *requirements.txt, .coafile
 
 indent_size = 4
 use_spaces = yes
-max_line_length = 120
+max_line_length = 88
 max_lines_per_file = 1000
 file_naming_convention = snake
 
