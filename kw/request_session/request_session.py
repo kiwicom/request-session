@@ -561,14 +561,20 @@ class RequestSession(object):
 
                 status_code = self._get_status_code(response)
 
-                self.exception_log_and_metrics(
-                    error, request_category, request_params, error_tags, status_code
+                is_econnreset_error = isinstance(
+                    error, requests.exceptions.ConnectionError
+                ) and (
+                    "ECONNRESET" in str(error)
+                    or "Connection reset by peer" in str(error)
                 )
 
+                if not is_econnreset_error:
+                    self.exception_log_and_metrics(
+                        error, request_category, request_params, error_tags, status_code
+                    )
+
                 if self.is_server_error(error, status_code):
-                    if isinstance(
-                        error, requests.exceptions.ConnectionError
-                    ) and "ECONNRESET" in str(error):
+                    if is_econnreset_error:
                         log.info(
                             "requestsession.{}.session_replace".format(request_category)
                         )
@@ -583,6 +589,15 @@ class RequestSession(object):
                         run == max_runs + retries_on_econnreset
                         or max(max_runs, 2) == retries_on_econnreset
                     ):  # failed on last try
+                        if is_econnreset_error:
+                            self.exception_log_and_metrics(
+                                error,
+                                request_category,
+                                request_params,
+                                error_tags,
+                                status_code,
+                            )
+
                         if raise_for_status:
                             setattr(sys.exc_info()[1], "__sentry_source", "third_party")
                             setattr(sys.exc_info()[1], "__sentry_pd_alert", "disabled")
