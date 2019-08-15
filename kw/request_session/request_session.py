@@ -1,24 +1,29 @@
 """Base modules for implementing adapters."""
 from collections import namedtuple
-import re
+import sys
+import time
 from typing import Any, Dict, List, Optional, Tuple, Union  # pylint: disable=unused-import
-from urllib.parse import urljoin
 
 import attr
-import ddtrace
-from kw import json  # type: ignore
+import simplejson as json
 import requests
 import requests.adapters
 import structlog
+import ddtrace
 
-from .. import error_lib, sentry_client, settings, statsd
-from ..context import execution_context
-from ..exceptions import APIError, InvalidUserAgentString
-from ..utils import traced_sleep
+from . import urljoin
+
+from .. import sentry_client, statsd
 
 Timeout = namedtuple("Timeout", ["connection_timeout", "read_timeout"])
 
 log = structlog.get_logger()
+
+
+class APIError(Exception):
+    """Base error for API mishandling."""
+
+    default_message = "API error occured."
 
 
 @attr.s
@@ -162,7 +167,7 @@ class RequestSession(object):
     auth = attr.ib(None, type=tuple)
 
     timeout = attr.ib(10, type=Union[float, Tuple[float, float], Timeout])
-    verify = attr.ib(settings.api_clients.SSL_VERIFY, type=Union[bool, str])
+    verify = attr.ib(True, type=Union[bool, str])
 
     max_retries = attr.ib(0, type=int, validator=attr.validators.instance_of(int))
     verbose_logging = attr.ib(False, type=bool)
@@ -171,7 +176,6 @@ class RequestSession(object):
 
     raise_for_status = attr.ib(True, type=bool, validator=attr.validators.instance_of(bool))
 
-    user_agent_components = attr.ib(None, type=UserAgentComponents)
     user_agent = attr.ib(None, type=str)
 
     session_instances = []  # type: List[requests.Session]
@@ -191,8 +195,6 @@ class RequestSession(object):
 
         if self.user_agent is not None:
             self.session.headers.update({"User-Agent": self.user_agent})
-        elif self.user_agent_components is not None:
-            self.set_user_agent()
 
         if self.datadog_service_name is not None:
             tracing_config = ddtrace.config.get_from(self.session)
@@ -209,21 +211,6 @@ class RequestSession(object):
         if self.session in self.session_instances:
             del self.session_instances[self.session_instances.index(self.session)]
         self.session.close()
-
-    def set_user_agent(self):
-        """Set proper user-agent string to header according to RFC22."""
-        pattern = r"^(?P<service_name>\S.+?)\/(?P<version>\S.+?) \((?P<organization>\S.+?) (?P<environment>\S.+?)\)(?: ?(?P<sys_info>.*))$"
-        string = "{service_name}/{version} ({organization} {environment}) {sys_info}".format(
-            service_name=self.user_agent_components.service_name,
-            version=self.user_agent_components.version,
-            organization=self.user_agent_components.organization,
-            environment=self.user_agent_components.environment,
-            sys_info=self.user_agent_components.sys_info if self.user_agent_components.sys_info else "",
-        ).strip()
-        if not re.match(pattern, string):
-            raise InvalidUserAgentString("Provided User-Agent string is not valid.")
-        self.user_agent = string
-        self.session.headers.update({"User-Agent": string})
 
     def delete(
         self,
@@ -499,7 +486,9 @@ class RequestSession(object):
                         run == max_runs + retries_on_econnreset or max(max_runs, 2) == retries_on_econnreset
                     ):  # failed on last try
                         if raise_for_status:
-                            error_lib.reraise_as_third_party()
+                            setattr(sys.exc_info()[1], "__sentry_source", "third_party")
+                            setattr(sys.exc_info()[1], "__sentry_pd_alert", "disabled")
+                            raise  # pylint: disable=misplaced-bare-raise
                         return response
 
                 else:
@@ -540,7 +529,10 @@ class RequestSession(object):
         trace_name = request_category.replace(".", "_") + "_retry"
         meta = {"request_category": request_category}
         meta = self.split_tags(meta, tags)
-        traced_sleep(trace_name, seconds, meta=meta)
+        with ddtrace.tracer.trace(trace_name, service="sleep") as span:
+            if meta:
+                span.set_metas(meta)
+            time.sleep(seconds)  # Ignore KeywordBear
 
     @staticmethod
     def metric_increment(metric, request_category, tags):
