@@ -474,7 +474,8 @@ class RequestSession(object):
         )
 
         run, retries_on_econnreset = 0, 0
-        # this will set maximum number of retries to max_runs where econnreset retries are not counting and maximum number of of retries on econnreset is also set to max_runs
+        # this will set maximum number of retries to max_runs where econnreset retries are not counting and
+        # maximum number of of retries on econnreset is also set to max_runs
         while run < max_runs + retries_on_econnreset:
             run += 1
             try:

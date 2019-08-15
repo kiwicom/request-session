@@ -64,9 +64,6 @@ bears = LineLengthBear
 bears = PyUnusedCodeBear
 ignore += **/__init__.py
 
-[all.python.complexity]
-bears = RadonBear
-
 [all.python.commented-code]
 bears = PyCommentedCodeBear
 

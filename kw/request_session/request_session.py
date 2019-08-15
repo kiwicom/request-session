@@ -2,14 +2,7 @@
 from collections import namedtuple
 import sys
 import time
-from typing import (  # pylint: disable=unused-import
-    Any,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, Dict, List, Optional, Tuple, Union  # pylint: disable=unused-import
 
 import attr
 import ddtrace
