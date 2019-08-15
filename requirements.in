@@ -1,5 +1,6 @@
 attr
-typing
-simplejson
+ddtrace
 requests
+simplejson
 structlog
+typing
