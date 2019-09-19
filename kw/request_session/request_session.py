@@ -1,9 +1,11 @@
 """Base modules for implementing adapters."""
 from collections import namedtuple
+from contextlib import contextmanager
 import sys
 import time
 from typing import (  # pylint: disable=unused-import
     Any,
+    Callable,
     Dict,
     List,
     Optional,
@@ -16,20 +18,30 @@ import ddtrace
 import requests
 import requests.adapters
 import simplejson as json
-import structlog
 
-from .. import sentry_client, statsd
 from ._compat import urljoin
+from .utils import dict_to_string
+from .utils import logger as builtin_logger
 
 Timeout = namedtuple("Timeout", ["connection_timeout", "read_timeout"])
-
-log = structlog.get_logger()
 
 
 class APIError(Exception):
     """Base error for API mishandling."""
 
     default_message = "API error occured."
+
+    def __init__(self, *args, **kwargs):
+        if not args:
+            args = (self.default_message,)
+        self.original_exc = kwargs.get("original_exc")
+
+        Exception.__init__(self, *args)
+
+
+@contextmanager
+def null_context_manager(*args, **kwargs):
+    yield
 
 
 @attr.s
@@ -210,6 +222,19 @@ class RequestSession(object):
 
     datadog_service_name = attr.ib(None, type=str)
 
+    statsd = attr.ib(None, type=object)
+
+    sentry_client = attr.ib(None, type=object)
+
+    logger = attr.ib(None, type=Callable)
+
+    log_prefix = attr.ib("requestsession", type=str)
+
+    allowed_log_levels = attr.ib(
+        ("debug", "info", "warning", "error", "critical", "exception", "log"),
+        type=Tuple[str],
+    )
+
     def __attrs_post_init__(self):
         self.prepare_new_session()
 
@@ -239,6 +264,12 @@ class RequestSession(object):
         if self.session in self.session_instances:
             del self.session_instances[self.session_instances.index(self.session)]
         self.session.close()
+
+    def close_all_sessions(self):
+        """Close all sessions in self.session_instances."""
+        for session in self.session_instances:
+            session.close()
+        self.session_instances = []
 
     def delete(
         self,
@@ -521,7 +552,12 @@ class RequestSession(object):
                 metric_name = "{metric_base}.response_time".format(
                     metric_base=request_category
                 )
-                with statsd.timed(metric_name, use_ms=True, tags=tags):
+                timed = (
+                    self.statsd.timed
+                    if self.statsd is not None
+                    else null_context_manager
+                )
+                with timed(metric_name, use_ms=True, tags=tags):
                     response = self.session.request(
                         method=request_type, **request_params
                     )
@@ -547,7 +583,8 @@ class RequestSession(object):
                     else {}
                 )
                 extra_params = self.split_tags(extra_params, success_tags)
-                log.info(
+                self.log(
+                    "info",
                     "requestsession.{}".format(request_category),
                     response_status_code=response.status_code,
                     **extra_params
@@ -575,8 +612,11 @@ class RequestSession(object):
 
                 if self.is_server_error(error, status_code):
                     if is_econnreset_error:
-                        log.info(
-                            "requestsession.{}.session_replace".format(request_category)
+                        self.log(
+                            "info",
+                            "requestsession.{}.session_replace".format(
+                                request_category
+                            ),
                         )
                         self.remove_session()
                         self.prepare_new_session()
@@ -607,14 +647,14 @@ class RequestSession(object):
                 else:
                     # Client error, request is not valid and server rejected it with
                     # http 4xx, but not timeout, there is no point in retrying.
-                    if report:
+                    if report and self.sentry_client is not None:
                         response_text = self.get_response_text(response)
                         extra_data = (
                             {"response_text": response_text}
                             if response_text != ""
                             else None
                         )
-                        sentry_client.captureException(extra=extra_data)
+                        self.sentry_client.captureException(extra=extra_data)
 
                     if raise_for_status:
                         raise APIError(str(error), original_exc=error)
@@ -651,25 +691,36 @@ class RequestSession(object):
                 span.set_metas(meta)
             time.sleep(seconds)  # Ignore KeywordBear
 
-    @staticmethod
-    def metric_increment(metric, request_category, tags):
+    def metric_increment(self, metric, request_category, tags):
         # type: (str, str, list) -> None
         """Metric request increment."""
-        metric_name = "{metric_base}.{metric_type}".format(
-            metric_base=request_category, metric_type=metric
-        )
-        statsd.increment(metric_name, tags=tags)
+        if self.statsd is not None:
+            metric_name = "{metric_base}.{metric_type}".format(
+                metric_base=request_category, metric_type=metric
+            )
+            self.statsd.increment(metric_name, tags=tags)
 
-    @staticmethod
-    def log_exception(error, error_type, request_category, status_code, **details):
-        # type: (str, str, str, Optional[int], **str) -> None
-        """Log request exception."""
-        event_name = "{error_base}.{error}".format(
-            error_base=request_category, error=error
+    def log(self, level, request_category, **kwargs):
+        # type: (str, str, **str) -> None
+        """Proxy to log with provided logger.
+
+        Builtin logging library is used otherwise.
+
+        :param level: string describing log level
+        :param request_category: request category to be logged
+        :param **kwargs: kw arguments to be logged
+        """
+        if not level in self.allowed_log_levels:
+            raise APIError("Specified log level is not allowed.")
+        event_name = "{prefix}.{category}".format(
+            prefix=self.log_prefix, category=request_category
         )
-        log.exception(
-            event_name, error_type=error_type, status_code=status_code, **details
-        )
+        if self.logger is not None:
+            getattr(self.logger, level)(event_name, **kwargs)
+        else:
+            getattr(builtin_logger, level)(
+                event_name, extra={"tags": dict_to_string(kwargs)}
+            )
 
     def exception_log_and_metrics(
         self, error, request_category, request_params, dd_tags, status_code
@@ -700,9 +751,14 @@ class RequestSession(object):
         if self.verbose_logging is True:
             extra_params["request_params"] = json.dumps(request_params)
 
-        self.log_exception(
-            "failed", error_type, request_category, status_code, **extra_params
+        self.log(
+            "exception",
+            "{}.failed".format(request_category),
+            error_type=error_type,
+            status_code=status_code,
+            **extra_params
         )
+
         self.metric_increment(
             metric="request", request_category=request_category, tags=tags
         )
