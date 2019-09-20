@@ -22,11 +22,9 @@ disable =
   too-few-public-methods,
   bad-continuation,
   useless-object-inheritance,
-  # Refactor & Remove the following!
   too-many-arguments,
-  too-many-statements,
-  too-many-branches,
   too-many-locals,
+  too-many-branches,
   attribute-defined-outside-init
 [REPORTS]
 output-format=colorized

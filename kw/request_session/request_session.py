@@ -508,8 +508,7 @@ class RequestSession(object):
             (if raise_for_status is True)
         :raises APIError: client error on operation (if raise_for_status is True)
         """
-        if not tags:
-            tags = []
+        tags = [] if not tags else tags
 
         request_params = {
             "url": url,
@@ -520,12 +519,12 @@ class RequestSession(object):
         request_params.update(request_kwargs)
 
         response = None
-        max_runs = 1 + (self.max_retries if max_retries is None else max_retries)
         request_category = self._get_request_category(request_category)
         raise_for_status = (
             raise_for_status if raise_for_status is not None else self.raise_for_status
         )
 
+        max_runs = 1 + (self.max_retries if max_retries is None else max_retries)
         run, retries_on_econnreset = 0, 0
         # this will set maximum number of retries to max_runs where econnreset retries
         # are not counting and maximum number of of retries on econnreset is also
@@ -533,45 +532,8 @@ class RequestSession(object):
         while run < max_runs + retries_on_econnreset:
             run += 1
             try:
-                metric_name = "{metric_base}.response_time".format(
-                    metric_base=request_category
-                )
-                timed = (
-                    self.statsd.timed
-                    if self.statsd is not None
-                    else null_context_manager
-                )
-                with timed(metric_name, use_ms=True, tags=tags):
-                    response = self.session.request(
-                        method=request_type, **request_params
-                    )
-
-                response.raise_for_status()
-
-                success_tags = list(tags) if tags else []
-                success_tags.extend(
-                    ["status:success", "attempt:{attempt}".format(attempt=run)]
-                )
-                self.metric_increment(
-                    metric=self.metric_name,
-                    request_category=request_category,
-                    tags=success_tags,
-                )
-
-                extra_params = (
-                    {
-                        "request_params": json.dumps(request_params),
-                        "response_text": self.get_response_text(response),
-                    }
-                    if self.verbose_logging
-                    else {}
-                )
-                extra_params = split_tags_and_update(extra_params, success_tags)
-                self.log(
-                    "info",
-                    "requestsession.{category}".format(category=request_category),
-                    response_status_code=response.status_code,
-                    **extra_params
+                response = self._send_request(
+                    request_type, request_params, tags, run, response
                 )
 
             except requests.RequestException as error:
@@ -590,7 +552,7 @@ class RequestSession(object):
                 )
 
                 if not is_econnreset_error:
-                    self.exception_log_and_metrics(
+                    self._exception_log_and_metrics(
                         error, request_category, request_params, error_tags, status_code
                     )
 
@@ -598,8 +560,8 @@ class RequestSession(object):
                     if is_econnreset_error:
                         self.log(
                             "info",
-                            "requestsession.{category}.session_replace".format(
-                                category=request_category
+                            "requestsession.{request_category}.session_replace".format(
+                                request_category=request_category
                             ),
                         )
                         self.remove_session()
@@ -609,12 +571,14 @@ class RequestSession(object):
 
                     # try again in case of ECONNRESET,
                     # even for api client with 0 retries
-                    if (
+                    failed_on_last_try = (
                         run == max_runs + retries_on_econnreset
                         or max(max_runs, 2) == retries_on_econnreset
-                    ):  # failed on last try
+                    )
+
+                    if failed_on_last_try:  # failed on last try
                         if is_econnreset_error:
-                            self.exception_log_and_metrics(
+                            self._exception_log_and_metrics(
                                 error,
                                 request_category,
                                 request_params,
@@ -651,6 +615,58 @@ class RequestSession(object):
                 return response
 
         return None
+
+    def _send_request(self, request_type, request_params, tags, run, response):
+        """Send the request and metrics.
+
+        :param request_type: HTTP method
+        :param request_params: parameters to call the request with
+        :param tags: tags to be added to metrics
+        :param run: attempt number
+        """
+        request_category = self._get_request_category
+        metric_name = "{request_category}.response_time".format(
+            request_category=request_category
+        )
+        timed = self.statsd.timed if self.statsd is not None else null_context_manager
+
+        with timed(metric_name, use_ms=True, tags=tags):
+            response = self.session.request(method=request_type, **request_params)
+        response.raise_for_status()
+
+        success_tags = list(tags) if tags else []
+        success_tags.extend(["status:success", "attempt:{attempt}".format(attempt=run)])
+        self.metric_increment(
+            metric=self.metric_name,
+            request_category=request_category,
+            tags=success_tags,
+        )
+
+        self._log_with_params(request_params, response, success_tags)
+        return response
+
+    def _log_with_params(self, request_params, response, success_tags):
+        """Prepare parameters and log response.
+
+        :param request_params: parameters used in the request
+        :param response: response
+        :param success_tags: tags denoting success of the request
+        """
+        extra_params = (
+            {
+                "request_params": json.dumps(request_params),
+                "response_text": self.get_response_text(response),
+            }
+            if self.verbose_logging
+            else {}
+        )
+        extra_params = split_tags_and_update(extra_params, success_tags)
+        self.log(
+            "info",
+            "requestsession.{category}".format(category=self._get_request_category),
+            response_status_code=response.status_code,
+            **extra_params
+        )
 
     def sleep(self, seconds, request_category, tags):
         # type: (float, str, List[str]) -> None
@@ -706,7 +722,7 @@ class RequestSession(object):
                 event_name, extra={"tags": dict_to_string(kwargs)}
             )
 
-    def exception_log_and_metrics(
+    def _exception_log_and_metrics(
         self, error, request_category, request_params, dd_tags, status_code
     ):
         # type: (requests.RequestException, str, Dict,  list, Optional[int]) -> None
