@@ -1,6 +1,5 @@
 """Base modules for implementing adapters."""
 from collections import namedtuple
-from contextlib import contextmanager
 import sys
 import time
 from typing import (  # pylint: disable=unused-import
@@ -20,28 +19,10 @@ import requests.adapters
 import simplejson as json
 
 from ._compat import urljoin
-from .utils import dict_to_string
+from .utils import APIError, dict_to_string, null_context_manager, split_tags_and_update
 from .utils import logger as builtin_logger
 
 Timeout = namedtuple("Timeout", ["connection_timeout", "read_timeout"])
-
-
-class APIError(Exception):
-    """Base error for API mishandling."""
-
-    default_message = "API error occured."
-
-    def __init__(self, *args, **kwargs):
-        if not args:
-            args = (self.default_message,)
-        self.original_exc = kwargs.get("original_exc")
-
-        Exception.__init__(self, *args)
-
-
-@contextmanager
-def null_context_manager(*args, **kwargs):
-    yield
 
 
 @attr.s
@@ -230,6 +211,8 @@ class RequestSession(object):
 
     log_prefix = attr.ib("requestsession", type=str)
 
+    metric_name = attr.ib("request", type=str)
+
     allowed_log_levels = attr.ib(
         ("debug", "info", "warning", "error", "critical", "exception", "log"),
         type=Tuple[str],
@@ -239,6 +222,7 @@ class RequestSession(object):
         self.prepare_new_session()
 
     def prepare_new_session(self):
+        """Prepare new configured session."""
         self.session = requests.Session()
         self.session_instances.append(self.session)
 
@@ -266,7 +250,7 @@ class RequestSession(object):
         self.session.close()
 
     def close_all_sessions(self):
-        """Close all sessions in self.session_instances."""
+        """Close and remove all sessions in self.session_instances."""
         for session in self.session_instances:
             session.close()
         self.session_instances = []
@@ -569,7 +553,7 @@ class RequestSession(object):
                     ["status:success", "attempt:{attempt}".format(attempt=run)]
                 )
                 self.metric_increment(
-                    metric="request",
+                    metric=self.metric_name,
                     request_category=request_category,
                     tags=success_tags,
                 )
@@ -582,10 +566,10 @@ class RequestSession(object):
                     if self.verbose_logging
                     else {}
                 )
-                extra_params = self.split_tags(extra_params, success_tags)
+                extra_params = split_tags_and_update(extra_params, success_tags)
                 self.log(
                     "info",
-                    "requestsession.{}".format(request_category),
+                    "requestsession.{category}".format(category=request_category),
                     response_status_code=response.status_code,
                     **extra_params
                 )
@@ -596,7 +580,7 @@ class RequestSession(object):
                     ["attempt:{attempt}".format(attempt=run)]
                 )  # type: list
 
-                status_code = self._get_status_code(response)
+                status_code = response.status_code if response is not None else None
 
                 is_econnreset_error = isinstance(
                     error, requests.exceptions.ConnectionError
@@ -614,8 +598,8 @@ class RequestSession(object):
                     if is_econnreset_error:
                         self.log(
                             "info",
-                            "requestsession.{}.session_replace".format(
-                                request_category
+                            "requestsession.{category}.session_replace".format(
+                                category=request_category
                             ),
                         )
                         self.remove_session()
@@ -668,24 +652,19 @@ class RequestSession(object):
 
         return None
 
-    @staticmethod
-    def split_tags(dictionary, tags):
-        dictionary.update(dict(tag.split(":", 1) for tag in tags))  # type: ignore
-        return dictionary
-
     def sleep(self, seconds, request_category, tags):
         # type: (float, str, List[str]) -> None
         """Call sleep function and send metrics to datadog.
 
         :param float seconds: float or int number of seconds to sleep
-        :param request_category: request category for datadog
+        :param request_category: request category
         :param tags: tags for datadog
 
         :return: None
         """
         trace_name = request_category.replace(".", "_") + "_retry"
         meta = {"request_category": request_category}
-        meta = self.split_tags(meta, tags)
+        meta = split_tags_and_update(meta, tags)
         with ddtrace.tracer.trace(trace_name, service="sleep") as span:
             if meta:
                 span.set_metas(meta)
@@ -693,7 +672,12 @@ class RequestSession(object):
 
     def metric_increment(self, metric, request_category, tags):
         # type: (str, str, list) -> None
-        """Metric request increment."""
+        """Metric request increment.
+
+        :param metric: name of the metric to be incremented
+        :param request_category: request category
+        :param tags: tags to increment metric with
+        """
         if self.statsd is not None:
             metric_name = "{metric_base}.{metric_type}".format(
                 metric_base=request_category, metric_type=metric
@@ -726,12 +710,19 @@ class RequestSession(object):
         self, error, request_category, request_params, dd_tags, status_code
     ):
         # type: (requests.RequestException, str, Dict,  list, Optional[int]) -> None
-        """Assign appropriate metric and log for exception."""
+        """Assign appropriate metric and log for exception.
+
+        :param error: exception that occured
+        :param request_category: string describing request category
+        :param request_params: parameters used to make the HTTP call
+        :param dd_tags: tags to increment metric with
+        :param status_code: HTTP status code of the response
+        """
         tags = ["status:error"]
         tags.extend(dd_tags)
         response_text = self.get_response_text(error.response)
         extra_params = {"description": str(error), "response_text": response_text}
-        extra_params = self.split_tags(extra_params, tags)
+        extra_params = split_tags_and_update(extra_params, tags)
 
         if isinstance(error, requests.exceptions.Timeout):
             error_type = "read_timeout"
@@ -766,7 +757,12 @@ class RequestSession(object):
     @staticmethod
     def is_server_error(error, http_code):
         # type: (requests.RequestException, Optional[int]) -> bool
-        """Exception type and response code match server error."""
+        """Exception type and response code match server error.
+
+        :param error: exception
+        :param http_code: response HTTP status code
+        :return: if error is server error
+        """
         if not isinstance(error, requests.exceptions.HTTPError):
             return True
 
@@ -776,24 +772,11 @@ class RequestSession(object):
         return True
 
     @staticmethod
-    def _get_status_code(response):
-        # type: (Optional[requests.Response]) -> Optional[int]
-        """Get status code from response."""
-        # Danger: do not use `if response:` syntax
-        # bool(response) for `Response` returns `False` when status > 400
-        # check `def __bool__(self):` in `requests.models.Response`
-        if response is None:
-            return None
-
-        return response.status_code
-
-    @staticmethod
     def get_response_text(response):
         # type: (requests.Response) -> str
         """Return response text if exists.
 
         :param response: requests.Response object
-
         :return: response text
         """
         try:
