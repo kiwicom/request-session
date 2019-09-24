@@ -13,7 +13,6 @@ from typing import (  # pylint: disable=unused-import
 )
 
 import attr
-import ddtrace
 import requests
 import requests.adapters
 import simplejson as json
@@ -201,6 +200,8 @@ class RequestSession(object):
 
     session_instances = []  # type: List[requests.Session]
 
+    ddtrace = attr.ib(None)
+
     datadog_service_name = attr.ib(None, type=str)
 
     statsd = attr.ib(None, type=object)
@@ -234,7 +235,7 @@ class RequestSession(object):
             self.session.headers.update({"User-Agent": self.user_agent})
 
         if self.datadog_service_name is not None:
-            tracing_config = ddtrace.config.get_from(self.session)
+            tracing_config = self.ddtrace.config.get_from(self.session)
             tracing_config["service_name"] = self.datadog_service_name
 
         if self.headers is not None:
@@ -609,7 +610,10 @@ class RequestSession(object):
                     return response
 
                 if sleep_before_repeat:
-                    self.sleep(sleep_before_repeat, request_category, tags)
+                    if self.ddtrace is not None:
+                        self.sleep(sleep_before_repeat, request_category, tags)
+                    else:
+                        time.sleep(sleep_before_repeat)
 
             else:
                 return response
@@ -681,7 +685,7 @@ class RequestSession(object):
         trace_name = request_category.replace(".", "_") + "_retry"
         meta = {"request_category": request_category}
         meta = split_tags_and_update(meta, tags)
-        with ddtrace.tracer.trace(trace_name, service="sleep") as span:
+        with self.ddtrace.tracer.trace(trace_name, service="sleep") as span:
             if meta:
                 span.set_metas(meta)
             time.sleep(seconds)  # Ignore KeywordBear

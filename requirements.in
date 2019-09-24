@@ -1,5 +1,4 @@
 attrs
-ddtrace
 requests
 simplejson
 structlog
