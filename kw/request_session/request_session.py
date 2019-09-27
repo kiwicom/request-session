@@ -534,7 +534,7 @@ class RequestSession(object):
             run += 1
             try:
                 response = self._send_request(
-                    request_type, request_params, tags, run, response
+                    request_type, request_params, tags, run, response, request_category
                 )
 
             except requests.RequestException as error:
@@ -620,15 +620,25 @@ class RequestSession(object):
 
         return None
 
-    def _send_request(self, request_type, request_params, tags, run, response):
+    def _send_request(
+        self,
+        request_type,  # type: str
+        request_params,  # type: Dict
+        tags,  # type: List[str]
+        run,  # type: int
+        response,  # type: Union[requests.Response, None]
+        request_category,  # type: str
+    ):
+        # type: (...) -> Optional[requests.Response]
         """Send the request and metrics.
 
         :param request_type: HTTP method
         :param request_params: parameters to call the request with
         :param tags: tags to be added to metrics
         :param run: attempt number
+        :param respone: previous response or None
+        :param request_category: category of the request used for logging and metrics
         """
-        request_category = self._get_request_category
         metric_name = "{request_category}.response_time".format(
             request_category=request_category
         )
@@ -646,15 +656,19 @@ class RequestSession(object):
             tags=success_tags,
         )
 
-        self._log_with_params(request_params, response, success_tags)
+        self._log_with_params(request_params, response, success_tags, request_category)
         return response
 
-    def _log_with_params(self, request_params, response, success_tags):
+    def _log_with_params(
+        self, request_params, response, success_tags, request_category
+    ):
+        # type: (Dict, requests.Response, List[str], str) -> None
         """Prepare parameters and log response.
 
         :param request_params: parameters used in the request
         :param response: response
         :param success_tags: tags denoting success of the request
+        :param request_category: category of the request
         """
         extra_params = (
             {
@@ -667,7 +681,7 @@ class RequestSession(object):
         extra_params = split_tags_and_update(extra_params, success_tags)
         self.log(
             "info",
-            "requestsession.{category}".format(category=self._get_request_category),
+            "requestsession.{category}".format(category=request_category),
             response_status_code=response.status_code,
             **extra_params
         )
