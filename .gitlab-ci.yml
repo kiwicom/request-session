@@ -10,17 +10,23 @@ variables:
   PYLINT_TARGET: kw test
   PYTEST_COVERAGE_TARGET: kw
 
+mypy:
+  stage: build
+  image: kiwicom/mypy:0.620
+  script:
+    - mypy -p kw
+
 include:
-  - 'https://ci-files.skypicker.com/templates/build/black.yml'
-  - 'https://ci-files.skypicker.com/templates/build/coala.yml'
-  - 'https://ci-files.skypicker.com/templates/build/zoo.yml'
-  - 'https://ci-files.skypicker.com/templates/build/tox_init.yml'
-  - 'https://ci-files.skypicker.com/templates/test/tox_pylint.yml'
-  - 'https://ci-files.skypicker.com/templates/test/tox_tests.yml'
-  - 'https://ci-files.skypicker.com/templates/test/dependency_scanning.yml'
-  - 'https://ci-files.skypicker.com/templates/test/license_management.yml'
-  - 'https://ci-files.skypicker.com/templates/test/sast.yml'
-  - 'https://ci-files.skypicker.com/templates/release/sonarqube_scan.yml'
-  - 'https://ci-files.skypicker.com/templates/release/sonarqube_preview.yml'
-  - 'https://ci-files.skypicker.com/templates/release/pypi_upload.yml'
-  - 'https://ci-files.skypicker.com/templates/release/pages.dockerless_sphinx.yml'
+  - "https://ci-files.skypicker.com/templates/build/black.yml"
+  - "https://ci-files.skypicker.com/templates/build/coala.yml"
+  - "https://ci-files.skypicker.com/templates/build/zoo.yml"
+  - "https://ci-files.skypicker.com/templates/build/tox_init.yml"
+  - "https://ci-files.skypicker.com/templates/test/tox_pylint.yml"
+  - "https://ci-files.skypicker.com/templates/test/tox_tests.yml"
+  - "https://ci-files.skypicker.com/templates/test/dependency_scanning.yml"
+  - "https://ci-files.skypicker.com/templates/test/license_management.yml"
+  - "https://ci-files.skypicker.com/templates/test/sast.yml"
+  - "https://ci-files.skypicker.com/templates/release/sonarqube_scan.yml"
+  - "https://ci-files.skypicker.com/templates/release/sonarqube_preview.yml"
+  - "https://ci-files.skypicker.com/templates/release/pypi_upload.yml"
+  - "https://ci-files.skypicker.com/templates/release/pages.dockerless_sphinx.yml"
