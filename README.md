@@ -33,7 +33,8 @@ response = client.get("jobs.kiwi.com", tags=["get:jobs.kiwi.com"])
 
 Some benefits of using `request_session`:
 
-- Metrics: On each call you make to `GET` and `POST` methods several metrics are sent.
+- Metrics: On each call you make to `GET` and `POST` methods
+  several metrics are sent.
 
 - Logs: Each exception on the request can be logged.
 

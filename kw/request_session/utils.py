@@ -1,6 +1,6 @@
 """Utilites used in RequestSession."""
-from contextlib import contextmanager
 import logging
+from contextlib import contextmanager
 
 DATEFMT = "%Y-%m-%d %H:%M.%S"
 FORMAT = "%(asctime)s %(message)s\t  %(tags)s "

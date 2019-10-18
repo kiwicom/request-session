@@ -1,16 +1,9 @@
 """Base modules for implementing adapters."""
-from collections import namedtuple
 import sys
 import time
-from typing import (  # pylint: disable=unused-import
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from collections import namedtuple
+from typing import List  # pylint: disable=unused-import
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import attr
 import requests
@@ -18,14 +11,16 @@ import requests.adapters
 import simplejson as json
 
 from ._compat import urljoin
-from .utils import APIError, dict_to_string, null_context_manager, split_tags_and_update
+from .utils import APIError, dict_to_string
 from .utils import logger as builtin_logger
+from .utils import null_context_manager, split_tags_and_update
 
 Timeout = namedtuple("Timeout", ["connection_timeout", "read_timeout"])
 
 
 @attr.s
 class RequestSession(object):
+
     """Helper class for url requests with common settings.
 
     RequestSession is a helper class built on top of the `requests.Session`

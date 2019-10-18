@@ -25,7 +25,9 @@ disable =
   too-many-arguments,
   too-many-locals,
   too-many-branches,
-  attribute-defined-outside-init
+  attribute-defined-outside-init,
+  too-many-instance-attributes,
+  unused-import,
 [REPORTS]
 output-format=colorized
 
