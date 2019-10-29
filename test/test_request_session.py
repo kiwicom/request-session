@@ -1,0 +1,624 @@
+"""Test the main module."""
+import itertools
+import sys
+
+import pytest
+import requests
+import simplejson as json
+
+from kw.request_session import APIError, HTTPError, RequestException, RequestSession
+from kw.request_session.protocols import SentryClient, Statsd
+
+REQUEST_CATEGORY = "test"  # this request category must match the one in conftest
+INTERNAL_ERROR_MSG = (
+    "500 Server Error: INTERNAL SERVER ERROR for url: "
+    "http://127.0.0.1:8080/status/500"
+)
+TIMEOUT_ERROR_MSG = (
+    "408 Client Error: REQUEST TIMEOUT for url: http://127.0.0.1:8080/status/408"
+)
+DDTRACE_ERROR_MSG = "Ddtrace must be provided in order to report to datadog service."
+
+
+def test_init(mocker, httpbin):
+    """Test initialization of RequestSession."""
+    mock_ddtrace = mocker.Mock(spec_set=Statsd)
+    mock_tracing_config = dict()
+    mock_ddtrace.config.get_from.return_value = mock_tracing_config
+
+    session = RequestSession(
+        host=httpbin.url,
+        request_category=REQUEST_CATEGORY,
+        max_retries=3,
+        user_agent="UserAgent",
+        datadog_service_name="datadog_service",
+        ddtrace=mock_ddtrace,
+        headers={},
+        auth=("user", "passwd"),
+    )
+    assert session.host == httpbin.url
+    assert session.request_category == REQUEST_CATEGORY
+    assert session.max_retries == 3
+    assert session.user_agent == "UserAgent"
+    assert session.datadog_service_name == "datadog_service"
+    assert session.headers == {}
+    assert session.auth == ("user", "passwd")
+    assert mock_tracing_config["service_name"] == session.datadog_service_name
+
+
+def test_ddtrace_error(httpbin):
+    with pytest.raises(APIError, match=DDTRACE_ERROR_MSG):
+        RequestSession(
+            host=httpbin.url,
+            request_category=REQUEST_CATEGORY,
+            datadog_service_name="datadog_service",
+        )
+
+
+def test_remove_session(request_session):
+    session = request_session()
+    assert len(session.session_instances) == 3
+    session.remove_session()
+    assert len(session.session_instances) == 2
+
+
+def test_close_all_sessions(request_session):
+    session = request_session()
+    assert len(session.session_instances) == 3
+    session.close_all_sessions()
+    assert not session.session_instances
+
+
+@pytest.mark.parametrize(
+    "method, path, expected_status",
+    [
+        ("get", "/status/200", 200),
+        ("post", "/status/200", 200),
+        ("put", "/status/200", 200),
+        ("delete", "/status/200", 200),
+    ],
+)
+def test_method(request_session, method, path, expected_status):
+    """Test calling specific method."""
+    session = request_session()  # type: RequestSession
+    assert getattr(session, method)(path=path).status_code == expected_status
+
+
+@pytest.mark.parametrize(
+    "status_code, raises",
+    [
+        (200, None),
+        (404, APIError),
+        (409, APIError),
+        (500, HTTPError),
+        (503, HTTPError),
+        (505, HTTPError),
+    ],
+)
+def test_raise_for_status(mocker, httpbin, status_code, raises):
+    """Test raising of an exception when rejected with 4xx."""
+    session = RequestSession(host=httpbin.url, request_category=REQUEST_CATEGORY)
+    mock_sys = mocker.patch("kw.request_session.request_session.sys", spec_set=sys)
+    mock_sys.exc_info.return_value = (HTTPError, HTTPError(), "fake_traceback")
+    if raises:
+        with pytest.raises(raises):
+            session.get(path="/status/{status_code}".format(status_code=status_code))
+
+        if isinstance(raises, HTTPError):
+            assert mock_sys.exc_info()[1].__sentry_source == "third_party"
+            assert mock_sys.exc_info()[1].__sentry_pd_alert == "disabled"
+    else:
+        session.get(path="/status/{status_code}".format(status_code=status_code))
+
+
+@pytest.mark.parametrize(
+    "exceptions, max_retries, expected_call_count",
+    [
+        (itertools.cycle([requests.exceptions.ConnectionError("ECONNRESET")]), 0, 2),
+        (itertools.cycle([requests.exceptions.ConnectionError("ECONNRESET")]), 1, 2),
+        (itertools.cycle([requests.exceptions.ConnectionError("ECONNRESET")]), 2, 3),
+        (
+            itertools.cycle(
+                [
+                    requests.exceptions.ConnectionError("ECONNRESET"),
+                    requests.exceptions.ConnectionError,
+                ]
+            ),
+            0,
+            2,
+        ),
+    ],
+)
+def test_econnreset_error(
+    httpbin, mocker, exceptions, max_retries, expected_call_count
+):
+    used_sessions = []
+
+    def _prepare_new_session(self):
+        self.session = mocker.Mock(spec=requests.Session)
+        self.session_instances.append(self.session)
+        self.session.request.side_effect = next(exceptions)
+
+        used_sessions.append(self.session)
+
+    client = RequestSession(
+        host=httpbin.url, max_retries=max_retries, request_category=REQUEST_CATEGORY
+    )
+    mock_log = mocker.Mock(spec=RequestSession.log)
+    mock_exception_log_and_metrics = mocker.Mock(
+        spec=RequestSession._exception_log_and_metrics
+    )
+    client.log = mock_log
+    client._exception_log_and_metrics = mock_exception_log_and_metrics
+
+    mocker.patch.object(
+        RequestSession, "prepare_new_session", new=_prepare_new_session, spec_set=True
+    )
+
+    _prepare_new_session(client)
+
+    with pytest.raises(RequestException):
+        client.get("/status/500")
+    actual_call_count = sum(session.request.call_count for session in used_sessions)
+
+    assert mock_exception_log_and_metrics.call_count == 1
+    assert actual_call_count == expected_call_count
+
+
+@pytest.mark.parametrize(
+    "inputs, expected",
+    [
+        (
+            {"path": "/status/200", "tags": [], "max_retries": 10},
+            {
+                "exception": False,
+                "call_count": 0,
+                "request_params": {
+                    "url": "",
+                    "timeout": 10,
+                    "verify": True,
+                    "params": None,
+                },
+            },
+        ),
+        (
+            {"path": "/status/500", "tags": [], "max_retries": 10},
+            {
+                "exception": HTTPError,
+                "description": INTERNAL_ERROR_MSG,
+                "call_count": 11,
+                "error": "http_error",
+                "request_params": {
+                    "url": "",
+                    "timeout": 10,
+                    "verify": True,
+                    "params": None,
+                },
+                "error_tags": [],
+                "status_code": 500,
+            },
+        ),
+        (
+            {"path": "/status/408", "tags": [], "max_retries": 10},
+            {
+                "exception": HTTPError,
+                "description": TIMEOUT_ERROR_MSG,
+                "call_count": 11,
+                "error": "http_error",
+                "request_params": {
+                    "url": "",
+                    "timeout": 10,
+                    "verify": True,
+                    "params": None,
+                },
+                "error_tags": [],
+                "status_code": 408,
+            },
+        ),
+    ],
+)
+def test_logging(mocker, request_session, inputs, expected):
+    mock_exception_log_and_metrics = mocker.Mock(
+        spec_set=RequestSession._exception_log_and_metrics
+    )
+    client = request_session(max_retries=inputs["max_retries"])
+    client._exception_log_and_metrics = mock_exception_log_and_metrics
+    expected["request_params"]["url"] = "{}{}".format(client.host, inputs["path"])
+
+    calls = []
+    for attempt in range(1, expected["call_count"] + 1):
+        calls.append(
+            mocker.call(
+                error=expected["exception"](expected["description"]),
+                request_category=client._get_request_category(),
+                request_params=expected["request_params"],
+                dd_tags=expected["error_tags"],
+                status_code=expected["status_code"],
+                attempt=attempt,
+            )
+        )
+
+    if expected["exception"]:
+        with pytest.raises(expected["exception"]):
+            client.get(path=inputs["path"], tags=inputs["tags"])
+    else:
+        client.get(path=inputs["path"], tags=inputs["tags"])
+
+    assert mock_exception_log_and_metrics.call_count == expected["call_count"]
+    # compare everything manually because exceptions cannot be compared directly
+    # with mock.assert_has_calls
+    for mock, actual in zip(calls, mock_exception_log_and_metrics.mock_calls):
+        for key, value in actual[2].items():
+            if key == "error":
+                assert type(mock[2][key]) is type(value)
+                assert mock[2][key].args == value.args
+            else:
+                assert mock[2][key] == value
+
+
+@pytest.mark.parametrize(
+    "path, max_retries, status, error, call_count",
+    [
+        ("/status/200", 0, "success", None, 1),
+        ("/status/408", 5, "error", "http_error", 6),
+        ("/status/500", 0, "error", "http_error", 1),
+        ("/status/500", 1, "error", "http_error", 2),
+    ],
+)
+def test_metric_increment(
+    mocker, request_session, path, max_retries, status, error, call_count
+):
+    """Test correct incrementing of metrics when call is performed."""
+    metric_name = "metric_name"
+    mock_statsd = mocker.MagicMock(spec_set=Statsd)
+    client = request_session(
+        max_retries=max_retries, statsd=mock_statsd, metric_name=metric_name
+    )  # type: RequestSession
+    client.get(path=path, raise_for_status=False)
+
+    calls = []
+    for attempt in range(1, call_count + 1):
+        metric = "{}.{}".format(client._get_request_category(), metric_name)
+        tags = ["status:{}".format(status), "attempt:{}".format(attempt)]
+        if error:
+            tags.append("error:{}".format(error))
+        calls.append(mocker.call(metric, tags=tags))
+
+    assert mock_statsd.increment.call_count == call_count
+    mock_statsd.increment.assert_has_calls(calls)
+
+
+@pytest.mark.parametrize(
+    "log_level, raises_exception",
+    [
+        ("debug", False),
+        ("info", False),
+        ("warning", False),
+        ("error", False),
+        ("critical", False),
+        ("exception", False),
+        ("log", False),
+        ("undefined_log_level", True),
+    ],
+)
+def test_loggers(mocker, log_level, raises_exception):
+    mock_builtin_logger = mocker.patch(
+        "kw.request_session.request_session.builtin_logger", spec_set=True
+    )
+    mock_custom_logger = mocker.Mock()
+    client_custom_logger = RequestSession(logger=mock_custom_logger)
+    client_builtin_logger = RequestSession()
+
+    if raises_exception:
+        with pytest.raises(APIError):
+            client_custom_logger.log(log_level, REQUEST_CATEGORY)
+            client_builtin_logger.log(log_level, REQUEST_CATEGORY)
+    else:
+        client_custom_logger.log(log_level, REQUEST_CATEGORY)
+        client_builtin_logger.log(log_level, REQUEST_CATEGORY)
+        getattr(mock_custom_logger, log_level).assert_called_once_with(
+            "requestsession.{}".format(REQUEST_CATEGORY)
+        )
+        getattr(mock_builtin_logger, log_level).assert_called_once_with(
+            "requestsession.{}".format(REQUEST_CATEGORY), extra={"tags": ""}
+        )
+
+
+def test_get_request_category(httpbin):
+    client = RequestSession(host=httpbin.url)
+
+    with pytest.raises(APIError, match="'request_category' is required parameter."):
+        client._get_request_category()
+
+    assert (
+        client._get_request_category(request_category=REQUEST_CATEGORY)
+        == REQUEST_CATEGORY
+    )
+
+    client.request_category = REQUEST_CATEGORY
+
+    assert client._get_request_category() == REQUEST_CATEGORY
+
+
+@pytest.mark.parametrize(
+    "path, seconds, max_retries, tags, call_count",
+    [
+        ("/status/500", 1, 1, [], 1),
+        ("/status/500", 1, 2, ["test:success"], 2),
+        ("/status/500", 1, 0, ["test:success"], 0),
+    ],
+)
+def test_sleep_before_repeat(
+    mocker, request_session, path, seconds, max_retries, tags, call_count
+):
+    mock_ddtrace = mocker.Mock(spec_set=Statsd)
+    mock_sleep = mocker.Mock()
+    client = request_session(
+        max_retries=max_retries, ddtrace=mock_ddtrace, raise_for_status=False
+    )  # type: RequestSession
+    client.sleep = mock_sleep
+
+    client.get(path=path, sleep_before_repeat=seconds, tags=tags)
+    assert mock_sleep.call_count == call_count
+    if call_count:
+        mock_sleep.assert_called_with(seconds, client.request_category, tags)
+
+
+@pytest.mark.parametrize(
+    "inputs, expected",
+    [
+        (
+            {
+                "request_type": "post",
+                "tags": ["test:success"],
+                "run": 1,
+                "path": "/status/200",
+            },
+            {},
+        ),
+        (
+            {
+                "request_type": "get",
+                "tags": ["test:failed"],
+                "run": 1,
+                "path": "/status/500",
+            },
+            {},
+        ),
+    ],
+)
+def test_send_request(request_session, mocker, inputs, expected):
+    mock_statsd = mocker.MagicMock(spec_set=Statsd)
+    client = request_session(statsd=mock_statsd)  # type: RequestSession
+    request_params = {
+        "url": client.host + inputs["path"],
+        "timeout": client.timeout,
+        "verify": client.verify,
+        "params": None,
+    }
+
+    response = client._send_request(
+        inputs["request_type"],
+        request_params,
+        inputs["tags"],
+        inputs["run"],
+        client.request_category,
+    )
+
+    assert isinstance(response, requests.Response)
+    mock_statsd.timed.assert_called_once_with(
+        "{}.response_time".format(client.request_category),
+        use_ms=True,
+        tags=inputs["tags"],
+    )
+
+
+def test_sleep(httpbin, mocker):
+    seconds = 1
+    tags = ["testing:sleep"]
+    meta = {"request_category": REQUEST_CATEGORY, "testing": "sleep"}
+    mock_ddtrace = mocker.MagicMock(spec_set=Statsd)
+    mock_span = mocker.Mock()
+    mock_ddtrace.tracer.trace.return_value.__enter__.return_value = mock_span
+    mock_time = mocker.patch("kw.request_session.request_session.time", autospec=True)
+    client = RequestSession(host=httpbin.url, ddtrace=mock_ddtrace)
+
+    client.sleep(seconds, REQUEST_CATEGORY, tags)
+
+    mock_ddtrace.tracer.trace.assert_called_once_with(
+        REQUEST_CATEGORY + "_retry", service="sleep"
+    )
+
+    mock_span.set_metas.assert_called_once_with(meta)
+    mock_time.sleep.assert_called_once_with(seconds)
+
+
+@pytest.mark.parametrize(
+    "inputs, expected",
+    [
+        (
+            {
+                "error": requests.exceptions.Timeout("Timeout"),
+                "attempt": 1,
+                "tags": [],
+                "request_params": {},
+                "verbose_logging": False,
+                "status_code": 408,
+            },
+            {
+                "tags": ["status:error", "attempt:1", "error:timeout"],
+                "extra_params": {
+                    "description": "Timeout",
+                    "response_text": "",
+                    "status": "error",
+                    "attempt": "1",
+                },
+                "error_type": "read_timeout",
+            },
+        ),
+        (
+            {
+                "error": requests.exceptions.HTTPError("HTTPError"),
+                "attempt": 1,
+                "tags": [],
+                "request_params": {},
+                "verbose_logging": False,
+                "status_code": 400,
+            },
+            {
+                "tags": ["status:error", "attempt:1", "error:http_error"],
+                "extra_params": {
+                    "description": "HTTPError",
+                    "response_text": "",
+                    "status": "error",
+                    "attempt": "1",
+                },
+                "error_type": "http_error",
+            },
+        ),
+        (
+            {
+                "error": requests.exceptions.ConnectionError("ConnectionError"),
+                "attempt": 1,
+                "tags": [],
+                "request_params": {},
+                "verbose_logging": False,
+                "status_code": 444,
+            },
+            {
+                "tags": ["status:error", "attempt:1", "error:connection_error"],
+                "extra_params": {
+                    "description": "ConnectionError",
+                    "response_text": "",
+                    "status": "error",
+                    "attempt": "1",
+                },
+                "error_type": "connection_error",
+            },
+        ),
+        (
+            {
+                "error": requests.exceptions.URLRequired("URLRequired"),
+                "attempt": 1,
+                "tags": [],
+                "request_params": {},
+                "verbose_logging": False,
+                "status_code": None,
+            },
+            {
+                "tags": ["status:error", "attempt:1", "error:request_exception"],
+                "extra_params": {
+                    "description": "URLRequired",
+                    "response_text": "",
+                    "status": "error",
+                    "attempt": "1",
+                },
+                "error_type": "request_exception",
+            },
+        ),
+        (
+            {  # custom tags passed to the _exception_log_and_metrics
+                "error": requests.exceptions.Timeout("Timeout"),
+                "attempt": 1,
+                "tags": ["custom:tags"],
+                "request_params": {},
+                "verbose_logging": False,
+                "status_code": 408,
+            },
+            {
+                "tags": ["status:error", "attempt:1", "custom:tags", "error:timeout"],
+                "extra_params": {
+                    "description": "Timeout",
+                    "response_text": "",
+                    "status": "error",
+                    "attempt": "1",
+                    "custom": "tags",
+                },
+                "error_type": "read_timeout",
+            },
+        ),
+        (
+            {  # attempt is not specified
+                "error": requests.exceptions.Timeout("Timeout"),
+                "attempt": None,
+                "tags": [],
+                "request_params": {},
+                "verbose_logging": False,
+                "status_code": 408,
+            },
+            {
+                "tags": ["status:error", "error:timeout"],
+                "extra_params": {
+                    "description": "Timeout",
+                    "response_text": "",
+                    "status": "error",
+                },
+                "error_type": "read_timeout",
+            },
+        ),
+    ],
+)
+def test_exception_and_log_metrics(request_session, mocker, inputs, expected):
+    mock_log = mocker.Mock()
+    mock_metric_increment = mocker.Mock()
+    client = request_session(
+        verbose_logging=inputs["verbose_logging"]
+    )  # type: RequestSession
+    client.log = mock_log
+    client.metric_increment = mock_metric_increment
+
+    client._exception_log_and_metrics(
+        error=inputs["error"],
+        request_category=client.request_category,
+        request_params=inputs["request_params"],
+        dd_tags=inputs["tags"],
+        status_code=inputs["status_code"],
+        attempt=inputs["attempt"],
+    )
+
+    mock_log.assert_called_once_with(
+        "exception",
+        "{}.failed".format(client.request_category),
+        error_type=expected["error_type"],
+        status_code=inputs["status_code"],
+        **expected["extra_params"]
+    )
+
+    mock_metric_increment.assert_called_once_with(
+        metric=client.metric_name,
+        request_category=client.request_category,
+        tags=expected["tags"],
+    )
+
+
+def test_get_response_text(mocker):
+    mock_response = mocker.Mock(spec_set=requests.Response)
+    mock_response.text = "response_text"
+    assert RequestSession.get_response_text(mock_response) == "response_text"
+    assert RequestSession.get_response_text("not_a_response_obj") == ""
+
+
+def test_reporting(request_session, mocker):
+    """Test reporting of failure when rejected with 4xx."""
+    mock_sentry_client = mocker.Mock(spec_set=SentryClient)
+    session = request_session(raise_for_status=False, sentry_client=mock_sentry_client)
+    session.get(path="/status/404", report=True)
+    mock_sentry_client.captureException.assert_called_once_with(extra=None)
+
+
+@pytest.mark.parametrize(
+    ("exception, status_code, expected"),
+    [
+        (requests.exceptions.RequestException(), None, True),
+        (requests.exceptions.ConnectionError(), None, True),
+        (requests.exceptions.Timeout(), None, True),
+        (requests.exceptions.HTTPError(), 400, False),
+        (requests.exceptions.HTTPError(), 399, True),
+        (requests.exceptions.HTTPError(), 408, True),  # Timeout is server error
+        (requests.exceptions.HTTPError(), 499, False),
+        (requests.exceptions.HTTPError(), 500, True),
+        (requests.exceptions.HTTPError(), None, True),
+    ],
+)
+def test_is_server_error(exception, status_code, expected):
+    assert RequestSession.is_server_error(exception, status_code) == expected

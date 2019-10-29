@@ -1,9 +1,7 @@
 """Module ensuring lib compatibilty."""
 from __future__ import absolute_import
 
-import sys
-
-if sys.version_info[0] < 3:
+try:
     from urlparse import urljoin  # pylint: disable=unused-import,import-error
-else:
+except ImportError:
     from urllib.parse import urljoin  # pylint: disable=unused-import,import-error

@@ -14,7 +14,7 @@ mypy:
   stage: build
   image: kiwicom/mypy:0.620
   script:
-    - mypy -p kw
+    - mypy -p kw --ignore-missing-imports
 
 include:
   - "https://ci-files.skypicker.com/templates/build/pre_commit.yml"

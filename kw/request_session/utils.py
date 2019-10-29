@@ -29,8 +29,16 @@ def null_context_manager(*args, **kwargs):
     yield
 
 
+def reraise_as_third_party(sys):
+    setattr(sys.exc_info()[1], "__sentry_source", "third_party")
+    setattr(sys.exc_info()[1], "__sentry_pd_alert", "disabled")
+
+
 def split_tags_and_update(dictionary, tags):
-    """Update dict with tags from string."""
+    """Update dict with tags from string.
+
+    Individual tags must be in format of <key>:<value>.
+    """
     dictionary.update(dict(tag.split(":", 1) for tag in tags))  # type: ignore
     return dictionary
 

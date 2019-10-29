@@ -11,9 +11,10 @@ import requests.adapters
 import simplejson as json
 
 from ._compat import urljoin
+from .protocols import SentryClient, Statsd
 from .utils import APIError, dict_to_string
 from .utils import logger as builtin_logger
-from .utils import null_context_manager, split_tags_and_update
+from .utils import null_context_manager, reraise_as_third_party, split_tags_and_update
 
 Timeout = namedtuple("Timeout", ["connection_timeout", "read_timeout"])
 
@@ -199,9 +200,9 @@ class RequestSession(object):
 
     datadog_service_name = attr.ib(None, type=str)
 
-    statsd = attr.ib(None, type=object)
+    statsd = attr.ib(None, type=Statsd)  # type: Statsd
 
-    sentry_client = attr.ib(None, type=object)
+    sentry_client = attr.ib(None, type=SentryClient)  # type: SentryClient
 
     logger = attr.ib(None, type=Callable)
 
@@ -230,6 +231,10 @@ class RequestSession(object):
             self.session.headers.update({"User-Agent": self.user_agent})
 
         if self.datadog_service_name is not None:
+            if not self.ddtrace or (self.ddtrace and not self.ddtrace.config):
+                raise APIError(
+                    "Ddtrace must be provided in order to report to datadog service."
+                )
             tracing_config = self.ddtrace.config.get_from(self.session)
             tracing_config["service_name"] = self.datadog_service_name
 
@@ -529,16 +534,28 @@ class RequestSession(object):
             run += 1
             try:
                 response = self._send_request(
-                    request_type, request_params, tags, run, response, request_category
+                    request_type, request_params, tags, run, request_category
+                )
+                response.raise_for_status()
+
+                success_tags = list(tags) if tags else []
+                success_tags.append("status:success")
+
+                self.metric_increment(
+                    metric=self.metric_name,
+                    request_category=request_category,
+                    tags=success_tags,
+                    attempt=run,
+                )
+
+                self._log_with_params(
+                    request_params, response, success_tags, request_category
                 )
 
             except requests.RequestException as error:
                 error_tags = list(tags) if tags else []
-                error_tags.extend(
-                    ["attempt:{attempt}".format(attempt=run)]
-                )  # type: list
 
-                status_code = response.status_code if response is not None else None
+                status_code = None if response is None else response.status_code
 
                 is_econnreset_error = isinstance(
                     error, requests.exceptions.ConnectionError
@@ -549,7 +566,12 @@ class RequestSession(object):
 
                 if not is_econnreset_error:
                     self._exception_log_and_metrics(
-                        error, request_category, request_params, error_tags, status_code
+                        error=error,
+                        request_category=request_category,
+                        request_params=request_params,
+                        dd_tags=error_tags,
+                        status_code=status_code,
+                        attempt=run,
                     )
 
                 if self.is_server_error(error, status_code):
@@ -572,19 +594,19 @@ class RequestSession(object):
                         or max(max_runs, 2) == retries_on_econnreset
                     )
 
-                    if failed_on_last_try:  # failed on last try
+                    if failed_on_last_try:
                         if is_econnreset_error:
                             self._exception_log_and_metrics(
-                                error,
-                                request_category,
-                                request_params,
-                                error_tags,
-                                status_code,
+                                error=error,
+                                request_category=request_category,
+                                request_params=request_params,
+                                dd_tags=error_tags,
+                                status_code=status_code,
+                                attempt=run,
                             )
 
                         if raise_for_status:
-                            setattr(sys.exc_info()[1], "__sentry_source", "third_party")
-                            setattr(sys.exc_info()[1], "__sentry_pd_alert", "disabled")
+                            reraise_as_third_party(sys)
                             raise  # pylint: disable=misplaced-bare-raise
                         return response
 
@@ -615,24 +637,16 @@ class RequestSession(object):
 
         return None
 
-    def _send_request(
-        self,
-        request_type,  # type: str
-        request_params,  # type: Dict
-        tags,  # type: List[str]
-        run,  # type: int
-        response,  # type: Union[requests.Response, None]
-        request_category,  # type: str
-    ):
-        # type: (...) -> Optional[requests.Response]
+    def _send_request(self, request_type, request_params, tags, run, request_category):
+        # type: (str, Dict[str, Any], List[str], int, str) -> requests.Response
         """Send the request and metrics.
 
         :param request_type: HTTP method
         :param request_params: parameters to call the request with
         :param tags: tags to be added to metrics
         :param run: attempt number
-        :param respone: previous response or None
-        :param request_category: category of the request used for logging and metrics
+        :param request_category: category for log and metric reporting
+        :return: requests.Response
         """
         metric_name = "{request_category}.response_time".format(
             request_category=request_category
@@ -641,28 +655,15 @@ class RequestSession(object):
 
         with timed(metric_name, use_ms=True, tags=tags):
             response = self.session.request(method=request_type, **request_params)
-        response.raise_for_status()
-
-        success_tags = list(tags) if tags else []
-        success_tags.extend(["status:success", "attempt:{attempt}".format(attempt=run)])
-        self.metric_increment(
-            metric=self.metric_name,
-            request_category=request_category,
-            tags=success_tags,
-        )
-
-        self._log_with_params(request_params, response, success_tags, request_category)
         return response
 
-    def _log_with_params(
-        self, request_params, response, success_tags, request_category
-    ):
+    def _log_with_params(self, request_params, response, tags, request_category):
         # type: (Dict, requests.Response, List[str], str) -> None
         """Prepare parameters and log response.
 
         :param request_params: parameters used in the request
         :param response: response
-        :param success_tags: tags denoting success of the request
+        :param tags: tags denoting success of the request
         :param request_category: category of the request
         """
         extra_params = (
@@ -673,11 +674,11 @@ class RequestSession(object):
             if self.verbose_logging
             else {}
         )
-        extra_params = split_tags_and_update(extra_params, success_tags)
+        extra_params = split_tags_and_update(extra_params, tags)
         self.log(
             "info",
             "requestsession.{category}".format(category=request_category),
-            response_status_code=response.status_code,
+            status_code=response.status_code,
             **extra_params
         )
 
@@ -699,22 +700,27 @@ class RequestSession(object):
                 span.set_metas(meta)
             time.sleep(seconds)  # Ignore KeywordBear
 
-    def metric_increment(self, metric, request_category, tags):
-        # type: (str, str, list) -> None
+    def metric_increment(self, metric, request_category, tags, attempt=None):
+        # type: (str, str, list, Optional[int]) -> None
         """Metric request increment.
 
         :param metric: name of the metric to be incremented
         :param request_category: request category
         :param tags: tags to increment metric with
+        :param attempt: number of attempt of the request
         """
+        new_tags = list(tags) if tags else []
+        if attempt:
+            new_tags.append("attempt:{attempt}".format(attempt=attempt))
+
         if self.statsd is not None:
             metric_name = "{metric_base}.{metric_type}".format(
                 metric_base=request_category, metric_type=metric
             )
-            self.statsd.increment(metric_name, tags=tags)
+            self.statsd.increment(metric_name, tags=new_tags)
 
     def log(self, level, request_category, **kwargs):
-        # type: (str, str, **str) -> None
+        # type: (str, str, **Any) -> None
         """Proxy to log with provided logger.
 
         Builtin logging library is used otherwise.
@@ -724,7 +730,7 @@ class RequestSession(object):
         :param **kwargs: kw arguments to be logged
         """
         if not level in self.allowed_log_levels:
-            raise APIError("Specified log level is not allowed.")
+            raise APIError("Provided log level is not allowed.")
         event_name = "{prefix}.{category}".format(
             prefix=self.log_prefix, category=request_category
         )
@@ -736,9 +742,15 @@ class RequestSession(object):
             )
 
     def _exception_log_and_metrics(
-        self, error, request_category, request_params, dd_tags, status_code
+        self,
+        error,  # type: requests.RequestException
+        request_category,  # type: str
+        request_params,  # type: Dict
+        dd_tags,  # type: List[str]
+        status_code,  # type: Union[int, None]
+        attempt=None,  # type: Optional[int]
     ):
-        # type: (requests.RequestException, str, Dict,  list, Optional[int]) -> None
+        # type: (...) -> None
         """Assign appropriate metric and log for exception.
 
         :param error: exception that occured
@@ -747,7 +759,11 @@ class RequestSession(object):
         :param dd_tags: tags to increment metric with
         :param status_code: HTTP status code of the response
         """
-        tags = ["status:error"]
+        tags = (
+            ["status:error", "attempt:{}".format(attempt)]
+            if attempt
+            else ["status:error"]
+        )
         tags.extend(dd_tags)
         response_text = self.get_response_text(error.response)
         extra_params = {"description": str(error), "response_text": response_text}
@@ -780,7 +796,7 @@ class RequestSession(object):
         )
 
         self.metric_increment(
-            metric="request", request_category=request_category, tags=tags
+            metric=self.metric_name, request_category=request_category, tags=tags
         )
 
     @staticmethod
@@ -802,7 +818,7 @@ class RequestSession(object):
 
     @staticmethod
     def get_response_text(response):
-        # type: (requests.Response) -> str
+        # type: (Union[requests.Response, Any]) -> str
         """Return response text if exists.
 
         :param response: requests.Response object

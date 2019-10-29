@@ -6,16 +6,31 @@
 #
 atomicwrites==1.3.0       # via pytest
 attrs==19.1.0             # via packaging, pytest
+blinker==1.4              # via raven
+brotlipy==0.7.0           # via httpbin
+cffi==1.12.3              # via brotlipy
+click==7.0                # via flask
 coverage==4.5.4           # via pytest-cov
+decorator==4.4.0          # via httpbin
+flask==1.1.1              # via httpbin, raven
+httpbin==0.7.0            # via pytest-httpbin
 importlib-metadata==0.19  # via pluggy, pytest
+itsdangerous==1.1.0       # via flask, httpbin
+jinja2==2.10.1            # via flask
+markupsafe==1.1.1         # via httpbin, jinja2
 more-itertools==5.0.0
 packaging==19.1           # via pytest
 pluggy==0.12.0            # via pytest
 py==1.8.0                 # via pytest
+pycparser==2.19           # via cffi
 pyparsing==2.4.2          # via packaging
 pytest-cov==2.7.1
+pytest-httpbin==1.0.0
 pytest-mock==1.10.4
 pytest==4.6.5
-six==1.12.0               # via more-itertools, packaging, pytest
+raven[flask]==6.10.0      # via httpbin
+six==1.12.0               # via httpbin, more-itertools, packaging, pytest, pytest-httpbin, structlog
+structlog==19.1.0
 wcwidth==0.1.7            # via pytest
+werkzeug==0.16.0          # via flask, httpbin
 zipp==0.5.2               # via importlib-metadata
