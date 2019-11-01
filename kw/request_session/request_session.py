@@ -578,8 +578,9 @@ class RequestSession(object):
                     if is_econnreset_error:
                         self.log(
                             "info",
-                            "requestsession.{request_category}.session_replace".format(
-                                request_category=request_category
+                            "{log_prefix}.{request_category}.session_replace".format(
+                                log_prefix=self.log_prefix,
+                                request_category=request_category,
                             ),
                         )
                         self.remove_session()
@@ -677,7 +678,9 @@ class RequestSession(object):
         extra_params = split_tags_and_update(extra_params, tags)
         self.log(
             "info",
-            "requestsession.{category}".format(category=request_category),
+            "{log_prefix}.{category}".format(
+                log_prefix=self.log_prefix, category=request_category
+            ),
             status_code=response.status_code,
             **extra_params
         )
@@ -789,7 +792,9 @@ class RequestSession(object):
 
         self.log(
             "exception",
-            "{}.failed".format(request_category),
+            "{log_prefix}.{request_category}.failed".format(
+                log_prefix=self.log_prefix, request_category=request_category
+            ),
             error_type=error_type,
             status_code=status_code,
             **extra_params
