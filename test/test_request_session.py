@@ -6,7 +6,14 @@ import pytest
 import requests
 import simplejson as json
 
-from kw.request_session import APIError, HTTPError, RequestException, RequestSession
+from kw.request_session import (
+    APIError,
+    HTTPError,
+    InvalidUserAgentString,
+    RequestException,
+    RequestSession,
+    UserAgentComponents,
+)
 from kw.request_session.protocols import SentryClient, Statsd
 
 REQUEST_CATEGORY = "test"  # this request category must match the one in conftest
@@ -18,6 +25,7 @@ TIMEOUT_ERROR_MSG = (
     "408 Client Error: REQUEST TIMEOUT for url: http://127.0.0.1:8080/status/408"
 )
 DDTRACE_ERROR_MSG = "Ddtrace must be provided in order to report to datadog service."
+USER_AGENT_ERROR_MSG = "Provided User-Agent string is not valid."
 
 
 def test_init(mocker, httpbin):
@@ -46,6 +54,80 @@ def test_init(mocker, httpbin):
     assert mock_tracing_config["service_name"] == session.datadog_service_name
 
 
+def test_correct_user_agent(request_session):
+    client = request_session(
+        user_agent_components=UserAgentComponents(
+            service_name="service_name",
+            version="1.1",
+            organization="Kiwi.com",
+            environment="testing",
+            sys_info="python 3.7",
+        )
+    )
+    assert client.user_agent == "service_name/1.1 (Kiwi.com testing) python 3.7"
+
+
+def test_user_agent_precedence(request_session):
+    client = request_session(
+        user_agent="hardcoded_user_agent",
+        user_agent_components=UserAgentComponents(
+            service_name="service_name",
+            version="1.1",
+            organization="Kiwi.com",
+            environment="testing",
+            sys_info="python 3.7",
+        ),
+    )
+
+    assert client.user_agent == "hardcoded_user_agent"
+
+
+@pytest.mark.parametrize(
+    "user_agent_components",
+    [
+        {
+            "service_name": "",
+            "version": "1.1",
+            "org": "Kiwi.com",
+            "env": "testing",
+            "sys_info": "python 3.7",
+        },
+        {
+            "service_name": "service_name",
+            "version": "",
+            "org": "Kiwi.com",
+            "env": "testing",
+            "sys_info": "python 3.7",
+        },
+        {
+            "service_name": "service_name",
+            "version": "1.1",
+            "org": "",
+            "env": "testing",
+            "sys_info": "python 3.7",
+        },
+        {
+            "service_name": "service_name",
+            "version": "1.1",
+            "org": "Kiwi.com",
+            "env": "",
+            "sys_info": "python 3.7",
+        },
+    ],
+)
+def test_incorrect_user_agent_components(request_session, user_agent_components):
+    with pytest.raises(InvalidUserAgentString, match=USER_AGENT_ERROR_MSG):
+        request_session(
+            user_agent_components=UserAgentComponents(
+                service_name=user_agent_components["service_name"],
+                version=user_agent_components["version"],
+                organization=user_agent_components["org"],
+                environment=user_agent_components["env"],
+                sys_info=user_agent_components["sys_info"],
+            )
+        )
+
+
 def test_ddtrace_error(httpbin):
     with pytest.raises(APIError, match=DDTRACE_ERROR_MSG):
         RequestSession(
@@ -56,15 +138,14 @@ def test_ddtrace_error(httpbin):
 
 
 def test_remove_session(request_session):
-    session = request_session()
-    assert len(session.session_instances) == 3
+    session = RequestSession()
+    before = len(session.session_instances)
     session.remove_session()
-    assert len(session.session_instances) == 2
+    assert len(session.session_instances) == before - 1
 
 
 def test_close_all_sessions(request_session):
     session = request_session()
-    assert len(session.session_instances) == 3
     session.close_all_sessions()
     assert not session.session_instances
 

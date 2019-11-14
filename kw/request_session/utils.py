@@ -2,12 +2,29 @@
 import logging
 from contextlib import contextmanager
 
+import attr
+
 DATEFMT = "%Y-%m-%d %H:%M.%S"
 FORMAT = "%(asctime)s %(message)s\t  %(tags)s "
 
 
 logging.basicConfig(format=FORMAT, datefmt=DATEFMT)
 logger = logging.getLogger()
+
+
+@attr.s
+class UserAgentComponents(object):
+    """Helper class to wrap user-agent items into one object."""
+
+    service_name = attr.ib(validator=[attr.validators.instance_of(str)], type=str)
+    version = attr.ib(validator=[attr.validators.instance_of(str)], type=str)
+    organization = attr.ib(validator=[attr.validators.instance_of(str)], type=str)
+    environment = attr.ib(validator=[attr.validators.instance_of(str)], type=str)
+    sys_info = attr.ib(None, type=str)
+
+
+class InvalidUserAgentString(Exception):
+    """Provided user agent string is not in correct format."""
 
 
 class APIError(Exception):

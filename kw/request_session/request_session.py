@@ -1,4 +1,5 @@
 """Base modules for implementing adapters."""
+import re
 import sys
 import time
 from collections import namedtuple
@@ -12,7 +13,7 @@ import simplejson as json
 
 from ._compat import urljoin
 from .protocols import SentryClient, Statsd
-from .utils import APIError, dict_to_string
+from .utils import APIError, InvalidUserAgentString, UserAgentComponents, dict_to_string
 from .utils import logger as builtin_logger
 from .utils import null_context_manager, reraise_as_third_party, split_tags_and_update
 
@@ -193,8 +194,10 @@ class RequestSession(object):
     )
 
     user_agent = attr.ib(None, type=str)
+    user_agent_components = attr.ib(None, type=UserAgentComponents)
 
-    session_instances = []  # type: List[requests.Session]
+    # session_intances is a class attribute
+    session_instances = attr.ib([], type=List[requests.Session])
 
     ddtrace = attr.ib(None)
 
@@ -229,6 +232,8 @@ class RequestSession(object):
 
         if self.user_agent is not None:
             self.session.headers.update({"User-Agent": self.user_agent})
+        elif self.user_agent_components is not None:
+            self.set_user_agent()
 
         if self.datadog_service_name is not None:
             if not self.ddtrace or (self.ddtrace and not self.ddtrace.config):
@@ -249,6 +254,23 @@ class RequestSession(object):
         if self.session in self.session_instances:
             del self.session_instances[self.session_instances.index(self.session)]
         self.session.close()
+
+    def set_user_agent(self):
+        """Set proper user-agent string to header according to RFC22."""
+        pattern = r"^(?P<service_name>\S.+?)\/(?P<version>\S.+?) \((?P<organization>\S.+?) (?P<environment>\S.+?)\)(?: ?(?P<sys_info>.*))$"
+        string = "{service_name}/{version} ({organization} {environment}) {sys_info}".format(
+            service_name=self.user_agent_components.service_name,
+            version=self.user_agent_components.version,
+            organization=self.user_agent_components.organization,
+            environment=self.user_agent_components.environment,
+            sys_info=self.user_agent_components.sys_info
+            if self.user_agent_components.sys_info
+            else "",
+        ).strip()
+        if not re.match(pattern, string):
+            raise InvalidUserAgentString("Provided User-Agent string is not valid.")
+        self.user_agent = string
+        self.session.headers.update({"User-Agent": string})
 
     def close_all_sessions(self):
         """Close and remove all sessions in self.session_instances."""
