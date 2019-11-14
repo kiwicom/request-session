@@ -1,4 +1,6 @@
 """Test the utilities."""
+import sys
+
 import pytest
 
 from kw.request_session.utils import (
@@ -9,8 +11,8 @@ from kw.request_session.utils import (
 
 
 def test_reraise_as_third_party(mocker):
-    mock_sys = mocker.MagicMock()
-    reraise_as_third_party(mock_sys)
+    mock_sys = mocker.patch("kw.request_session.utils.sys", spec_set=sys)
+    reraise_as_third_party()
 
     assert mock_sys.exc_info()[1].__sentry_source == "third_party"
     assert mock_sys.exc_info()[1].__sentry_pd_alert == "disabled"
@@ -24,7 +26,8 @@ def test_reraise_as_third_party(mocker):
     ],
 )
 def test_split_tags_and_update(dictionary, tags, expected):
-    assert split_tags_and_update(dictionary, tags) == expected
+    split_tags_and_update(dictionary, tags)
+    assert dictionary == expected
 
 
 @pytest.mark.parametrize(

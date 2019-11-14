@@ -12,7 +12,7 @@ import requests.adapters
 import simplejson as json
 
 from ._compat import urljoin
-from .protocols import SentryClient, Statsd
+from .protocols import Ddtrace, SentryClient, Statsd
 from .utils import APIError, InvalidUserAgentString, UserAgentComponents, dict_to_string
 from .utils import logger as builtin_logger
 from .utils import null_context_manager, reraise_as_third_party, split_tags_and_update
@@ -199,7 +199,7 @@ class RequestSession(object):
     # session_intances is a class attribute
     session_instances = attr.ib([], type=List[requests.Session])
 
-    ddtrace = attr.ib(None)
+    ddtrace = attr.ib(None, type=Ddtrace)  # type: Ddtrace
 
     datadog_service_name = attr.ib(None, type=str)
 
@@ -219,9 +219,11 @@ class RequestSession(object):
     )
 
     def __attrs_post_init__(self):
+        # type: () -> None
         self.prepare_new_session()
 
     def prepare_new_session(self):
+        # type: () -> None
         """Prepare new configured session."""
         self.session = requests.Session()
         self.session_instances.append(self.session)
@@ -247,15 +249,17 @@ class RequestSession(object):
             self.session.headers.update(self.headers)
 
         if self.auth is not None:
-            self.session.auth = self.auth
+            self.session.auth = self.auth  # type: ignore
 
     def remove_session(self):
+        # type: () -> None
         """Close session and remove it from list of session instances."""
         if self.session in self.session_instances:
             del self.session_instances[self.session_instances.index(self.session)]
         self.session.close()
 
     def set_user_agent(self):
+        # type: () -> None
         """Set proper user-agent string to header according to RFC22."""
         pattern = r"^(?P<service_name>\S.+?)\/(?P<version>\S.+?) \((?P<organization>\S.+?) (?P<environment>\S.+?)\)(?: ?(?P<sys_info>.*))$"
         string = "{service_name}/{version} ({organization} {environment}) {sys_info}".format(
@@ -273,6 +277,7 @@ class RequestSession(object):
         self.session.headers.update({"User-Agent": string})
 
     def close_all_sessions(self):
+        # type: () -> None
         """Close and remove all sessions in self.session_instances."""
         for session in self.session_instances:
             session.close()
@@ -287,7 +292,7 @@ class RequestSession(object):
         sleep_before_repeat=None,  # type: Optional[float]
         tags=None,  # type: Optional[list]
         raise_for_status=None,  # type: Optional[bool]
-        **request_kwargs
+        **request_kwargs  # type: Any
     ):
         # type: (...) -> Optional[requests.Response]
         r"""Delete request against a service.
@@ -335,7 +340,7 @@ class RequestSession(object):
         sleep_before_repeat=None,  # type: Optional[float]
         tags=None,  # type: Optional[list]
         raise_for_status=None,  # type: Optional[bool]
-        **request_kwargs
+        **request_kwargs  # type: Any
     ):
         # type: (...) -> Optional[requests.Response]
         r"""Get request against a service.
@@ -383,7 +388,7 @@ class RequestSession(object):
         sleep_before_repeat=None,  # type: Optional[float]
         tags=None,  # type: Optional[list]
         raise_for_status=None,  # type: Optional[bool]
-        **request_kwargs
+        **request_kwargs  # type: Any
     ):
         # type: (...) -> Optional[requests.Response]
         r"""Post request against a service.
@@ -431,7 +436,7 @@ class RequestSession(object):
         sleep_before_repeat=None,  # type: Optional[float]
         tags=None,  # type: Optional[list]
         raise_for_status=None,  # type: Optional[bool]
-        **request_kwargs
+        **request_kwargs  # type: Any
     ):
         # type: (...) -> Optional[requests.Response]
         r"""Put request against a service.
@@ -480,7 +485,7 @@ class RequestSession(object):
         sleep_before_repeat=None,  # type: Optional[float]
         tags=None,  # type: Optional[list]
         raise_for_status=None,  # type: Optional[bool]
-        **request_kwargs
+        **request_kwargs  # type: Any
     ):
         # type: (...) -> Optional[requests.Response]
         r"""Run a request against a service depending on a request type.
@@ -629,7 +634,7 @@ class RequestSession(object):
                             )
 
                         if raise_for_status:
-                            reraise_as_third_party(sys)
+                            reraise_as_third_party()
                             raise  # pylint: disable=misplaced-bare-raise
                         return response
 
@@ -697,7 +702,7 @@ class RequestSession(object):
             if self.verbose_logging
             else {}
         )
-        extra_params = split_tags_and_update(extra_params, tags)
+        split_tags_and_update(extra_params, tags)
         self.log(
             "info",
             "{log_prefix}.{category}".format(
@@ -719,7 +724,7 @@ class RequestSession(object):
         """
         trace_name = request_category.replace(".", "_") + "_retry"
         meta = {"request_category": request_category}
-        meta = split_tags_and_update(meta, tags)
+        split_tags_and_update(meta, tags)
         with self.ddtrace.tracer.trace(trace_name, service="sleep") as span:
             if meta:
                 span.set_metas(meta)
@@ -792,7 +797,7 @@ class RequestSession(object):
         tags.extend(dd_tags)
         response_text = self.get_response_text(error.response)
         extra_params = {"description": str(error), "response_text": response_text}
-        extra_params = split_tags_and_update(extra_params, tags)
+        split_tags_and_update(extra_params, tags)
 
         if isinstance(error, requests.exceptions.Timeout):
             error_type = "read_timeout"

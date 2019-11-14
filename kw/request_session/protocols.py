@@ -1,6 +1,8 @@
 """Simple protocols to duck type dependency injections."""
 from abc import ABCMeta, abstractmethod
+from typing import Any, Dict, List, Optional
 
+import attr
 from six import add_metaclass
 
 
@@ -9,6 +11,7 @@ class SentryClient(object):
     """SentryClient protocol."""
 
     def captureException(self, exc_info=None, **kwargs):
+        # type: (Any, Any) -> None
         """Creates an event from an exception.
 
         >>> try:
@@ -30,6 +33,7 @@ class Tracer(object):
     """Statsd Tracer protocol."""
 
     def trace(self, name, service=None, resource=None, span_type=None):
+        # type: (str, Optional[str], Optional[str], Optional[str]) -> Span
         """Return a span that will trace an operation called `name`.
 
         The context that created the span as well as the span parenting,
@@ -66,11 +70,41 @@ class Tracer(object):
         """
 
 
+@attr.s
+@add_metaclass(ABCMeta)
+class Span(object):
+    """Span protocol."""
+
+    tracer = attr.ib(None, type=Tracer)
+    name = attr.ib(None, type=str)
+    service = attr.ib(None, type=str)
+    resource = attr.ib(None, type=str)
+    span_type = attr.ib(None, type=str)
+    trace_id = attr.ib(None, type=int)
+    parent_id = attr.ib(None, type=int)
+    span_id = attr.ib(None, type=int)
+    start = attr.ib(None, type=int)
+    context = attr.ib(None, type=object)
+
+    def set_metas(self, kvs):
+        # type: (Any) -> None
+        """Set metas."""
+
+    def __enter__(self):
+        # type: () -> Span
+        pass
+
+    def __exit__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+        pass
+
+
 @add_metaclass(ABCMeta)
 class Config(object):
     """Statsd Config protocol."""
 
     def get_from(self, obj):
+        # type: (Any) -> Any
         """Retrieves the configuration for the given object.
 
         Any object that has an attached `Pin` must have a configuration
@@ -80,13 +114,19 @@ class Config(object):
 
 
 @add_metaclass(ABCMeta)
+class Ddtrace(object):
+    """Ddtrace protocol."""
+
+    config = None  # type: Config
+    tracer = None  # type: Tracer
+
+
+@add_metaclass(ABCMeta)
 class Statsd(object):
     """Statsd protocol."""
 
-    config = Config
-    tracer = Tracer
-
     def increment(self, metric, value=1, tags=None, sample_rate=1):
+        # type: (str, int, List[str], int) -> None
         """Increment a counter, optionally setting a value, tags and a sample rate.
 
         >>> statsd.increment('page.views')
@@ -94,6 +134,7 @@ class Statsd(object):
         """
 
     def timed(self, metric=None, tags=None, sample_rate=1, use_ms=None):
+        # type: (str, List[str], int, bool) -> TimedContextManagerDecorator
         """A decorator or context manager that will measure the distribution of a function's/context's run time.
 
         Optionally specify a list of tags or a
@@ -119,3 +160,23 @@ class Statsd(object):
             finally:
                 statsd.timing('user.query.time', time.time() - start)
         """
+
+
+@add_metaclass(ABCMeta)
+class TimedContextManagerDecorator(object):
+    """TimedContextManagerDecorator protocol."""
+
+    statsd = attr.ib(None, type=Statsd)
+    metric = attr.ib(None, type=str)
+    tags = attr.ib(None, type=List[str])
+    sample_rate = attr.ib(None, type=int)
+    use_ms = attr.ib(None, type=bool)
+    elapsed = attr.ib(None, type=int)
+
+    def __enter__(self):
+        # type: () -> TimedContextManagerDecorator
+        pass
+
+    def __exit__(self, type, value, traceback):  # pylint: disable=redefined-builtin
+        # type: (Any, Any, Any) -> None
+        pass

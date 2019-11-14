@@ -1,6 +1,8 @@
 """Utilites used in RequestSession."""
 import logging
+import sys
 from contextlib import contextmanager
+from typing import Any, Dict, Iterator, List, Text
 
 import attr
 
@@ -33,6 +35,7 @@ class APIError(Exception):
     default_message = "API error occured."
 
     def __init__(self, *args, **kwargs):
+        # type: (Any, Any) -> None
         if not args:
             args = (self.default_message,)
         self.original_exc = kwargs.get("original_exc")
@@ -42,25 +45,28 @@ class APIError(Exception):
 
 @contextmanager
 def null_context_manager(*args, **kwargs):
+    # type: (Any, Any) -> Iterator[None]
     """Do nothing."""
     yield
 
 
-def reraise_as_third_party(sys):
+def reraise_as_third_party():
+    # type: () -> None
     setattr(sys.exc_info()[1], "__sentry_source", "third_party")
     setattr(sys.exc_info()[1], "__sentry_pd_alert", "disabled")
 
 
 def split_tags_and_update(dictionary, tags):
+    # type: (Dict[str, str], List[str]) -> None
     """Update dict with tags from string.
 
     Individual tags must be in format of <key>:<value>.
     """
     dictionary.update(dict(tag.split(":", 1) for tag in tags))  # type: ignore
-    return dictionary
 
 
 def dict_to_string(dictionary):
+    # type: (Dict[str, Any]) -> Text
     """Convert dictionary to key=value pairs separated by a space."""
     return " ".join(
         [u"{}={}".format(key, value) for key, value in sorted(dictionary.items())]

@@ -14,7 +14,7 @@ from kw.request_session import (
     RequestSession,
     UserAgentComponents,
 )
-from kw.request_session.protocols import SentryClient, Statsd
+from kw.request_session.protocols import Ddtrace, SentryClient, Statsd
 
 REQUEST_CATEGORY = "test"  # this request category must match the one in conftest
 INTERNAL_ERROR_MSG = (
@@ -30,7 +30,7 @@ USER_AGENT_ERROR_MSG = "Provided User-Agent string is not valid."
 
 def test_init(mocker, httpbin):
     """Test initialization of RequestSession."""
-    mock_ddtrace = mocker.Mock(spec_set=Statsd)
+    mock_ddtrace = mocker.Mock(spec_set=Ddtrace)
     mock_tracing_config = dict()
     mock_ddtrace.config.get_from.return_value = mock_tracing_config
 
@@ -146,6 +146,8 @@ def test_remove_session(request_session):
 
 def test_close_all_sessions(request_session):
     session = request_session()
+    session.prepare_new_session()
+    assert len(session.session_instances) >= 2
     session.close_all_sessions()
     assert not session.session_instances
 
@@ -179,7 +181,7 @@ def test_method(request_session, method, path, expected_status):
 def test_raise_for_status(mocker, httpbin, status_code, raises):
     """Test raising of an exception when rejected with 4xx."""
     session = RequestSession(host=httpbin.url, request_category=REQUEST_CATEGORY)
-    mock_sys = mocker.patch("kw.request_session.request_session.sys", spec_set=sys)
+    mock_sys = mocker.patch("kw.request_session.utils.sys", spec_set=sys)
     mock_sys.exc_info.return_value = (HTTPError, HTTPError(), "fake_traceback")
     if raises:
         with pytest.raises(raises):
@@ -504,7 +506,7 @@ def test_sleep(httpbin, mocker):
     seconds = 1
     tags = ["testing:sleep"]
     meta = {"request_category": REQUEST_CATEGORY, "testing": "sleep"}
-    mock_ddtrace = mocker.MagicMock(spec_set=Statsd)
+    mock_ddtrace = mocker.MagicMock(spec_set=Ddtrace)
     mock_span = mocker.Mock()
     mock_ddtrace.tracer.trace.return_value.__enter__.return_value = mock_span
     mock_time = mocker.patch("kw.request_session.request_session.time", autospec=True)

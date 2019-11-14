@@ -4,7 +4,7 @@ import pytest
 from kw.request_session import RequestSession
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def request_session(httpbin):
     def inner(*args, **kwargs):
         return RequestSession(

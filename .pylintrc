@@ -28,6 +28,7 @@ disable =
   attribute-defined-outside-init,
   too-many-instance-attributes,
   unused-import,
+  too-many-function-args,
 [REPORTS]
 output-format=colorized
 
