@@ -603,13 +603,7 @@ class RequestSession(object):
 
                 if self.is_server_error(error, status_code):
                     if is_econnreset_error:
-                        self.log(
-                            "info",
-                            "{log_prefix}.{request_category}.session_replace".format(
-                                log_prefix=self.log_prefix,
-                                request_category=request_category,
-                            ),
-                        )
+                        self.log("info", "{}.session_replace".format(request_category))
                         self.remove_session()
                         self.prepare_new_session()
 
@@ -704,12 +698,7 @@ class RequestSession(object):
         )
         split_tags_and_update(extra_params, tags)
         self.log(
-            "info",
-            "{log_prefix}.{category}".format(
-                log_prefix=self.log_prefix, category=request_category
-            ),
-            status_code=response.status_code,
-            **extra_params
+            "info", request_category, status_code=response.status_code, **extra_params
         )
 
     def sleep(self, seconds, request_category, tags):
@@ -749,21 +738,19 @@ class RequestSession(object):
             )
             self.statsd.increment(metric_name, tags=new_tags)
 
-    def log(self, level, request_category, **kwargs):
+    def log(self, level, event, **kwargs):
         # type: (str, str, **Any) -> None
         """Proxy to log with provided logger.
 
         Builtin logging library is used otherwise.
 
         :param level: string describing log level
-        :param request_category: request category to be logged
+        :param event: event (<request_category> or <request_category>.<action>)
         :param **kwargs: kw arguments to be logged
         """
         if not level in self.allowed_log_levels:
             raise APIError("Provided log level is not allowed.")
-        event_name = "{prefix}.{category}".format(
-            prefix=self.log_prefix, category=request_category
-        )
+        event_name = "{prefix}.{event}".format(prefix=self.log_prefix, event=event)
         if self.logger is not None:
             getattr(self.logger, level)(event_name, **kwargs)
         else:
@@ -819,9 +806,7 @@ class RequestSession(object):
 
         self.log(
             "exception",
-            "{log_prefix}.{request_category}.failed".format(
-                log_prefix=self.log_prefix, request_category=request_category
-            ),
+            "{}.failed".format(request_category),
             error_type=error_type,
             status_code=status_code,
             **extra_params

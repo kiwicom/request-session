@@ -245,10 +245,7 @@ def test_econnreset_error(
     actual_call_count = sum(session.request.call_count for session in used_sessions)
 
     mock_log.assert_called_with(
-        "info",
-        "{prefix}.{category}.session_replace".format(
-            prefix=client.log_prefix, category=client.request_category
-        ),
+        "info", "{category}.session_replace".format(category=client.request_category)
     )
     assert mock_exception_log_and_metrics.call_count == 1
     assert actual_call_count == expected_call_count
@@ -667,7 +664,7 @@ def test_exception_and_log_metrics(request_session, mocker, inputs, expected):
 
     mock_log.assert_called_once_with(
         "exception",
-        "{}.{}.failed".format(client.log_prefix, client.request_category),
+        "{}.failed".format(client.request_category),
         error_type=expected["error_type"],
         status_code=inputs["status_code"],
         **expected["extra_params"]
