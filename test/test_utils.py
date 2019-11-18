@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from kw.request_session.utils import (
+from request_session.utils import (
     dict_to_string,
     reraise_as_third_party,
     split_tags_and_update,
@@ -11,7 +11,7 @@ from kw.request_session.utils import (
 
 
 def test_reraise_as_third_party(mocker):
-    mock_sys = mocker.patch("kw.request_session.utils.sys", spec_set=sys)
+    mock_sys = mocker.patch("request_session.utils.sys", spec_set=sys)
     reraise_as_third_party()
 
     assert mock_sys.exc_info()[1].__sentry_source == "third_party"

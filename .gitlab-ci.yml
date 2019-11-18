@@ -5,16 +5,16 @@ stages:
 
 variables:
   GIT_DEPTH: "3"
-  SAST_TARGET: kw
-  SONARQUBE_TARGET: kw,test
-  PYLINT_TARGET: kw test
-  PYTEST_COVERAGE_TARGET: kw
+  SAST_TARGET: request_session
+  SONARQUBE_TARGET: request_session,test
+  PYLINT_TARGET: request_session test
+  PYTEST_COVERAGE_TARGET: request_session
 
 mypy:
   stage: build
   image: kiwicom/mypy:0.620
   script:
-    - mypy -p kw --ignore-missing-imports
+    - mypy -p request_session --ignore-missing-imports
 
 include:
   - "https://ci-files.skypicker.com/templates/build/pre_commit.yml"

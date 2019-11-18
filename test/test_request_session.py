@@ -6,7 +6,7 @@ import pytest
 import requests
 import simplejson as json
 
-from kw.request_session import (
+from request_session import (
     APIError,
     HTTPError,
     InvalidUserAgentString,
@@ -14,7 +14,7 @@ from kw.request_session import (
     RequestSession,
     UserAgentComponents,
 )
-from kw.request_session.protocols import Ddtrace, SentryClient, Statsd
+from request_session.protocols import Ddtrace, SentryClient, Statsd
 
 REQUEST_CATEGORY = "test"  # this request category must match the one in conftest
 INTERNAL_ERROR_MSG = (
@@ -181,7 +181,7 @@ def test_method(request_session, method, path, expected_status):
 def test_raise_for_status(mocker, httpbin, status_code, raises):
     """Test raising of an exception when rejected with 4xx."""
     session = RequestSession(host=httpbin.url, request_category=REQUEST_CATEGORY)
-    mock_sys = mocker.patch("kw.request_session.utils.sys", spec_set=sys)
+    mock_sys = mocker.patch("request_session.utils.sys", spec_set=sys)
     mock_sys.exc_info.return_value = (HTTPError, HTTPError(), "fake_traceback")
     if raises:
         with pytest.raises(raises):
@@ -389,7 +389,7 @@ def test_metric_increment(
 )
 def test_loggers(mocker, log_level, raises_exception):
     mock_builtin_logger = mocker.patch(
-        "kw.request_session.request_session.builtin_logger", spec_set=True
+        "request_session.request_session.builtin_logger", spec_set=True
     )
     mock_custom_logger = mocker.Mock()
     client_custom_logger = RequestSession(logger=mock_custom_logger)
@@ -506,7 +506,7 @@ def test_sleep(httpbin, mocker):
     mock_ddtrace = mocker.MagicMock(spec_set=Ddtrace)
     mock_span = mocker.Mock()
     mock_ddtrace.tracer.trace.return_value.__enter__.return_value = mock_span
-    mock_time = mocker.patch("kw.request_session.request_session.time", autospec=True)
+    mock_time = mocker.patch("request_session.request_session.time", autospec=True)
     client = RequestSession(host=httpbin.url, ddtrace=mock_ddtrace)
 
     client.sleep(seconds, REQUEST_CATEGORY, tags)

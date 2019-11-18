@@ -1,7 +1,7 @@
 """Just a conftest."""
 import pytest
 
-from kw.request_session import RequestSession
+from request_session import RequestSession
 
 
 @pytest.fixture(scope="function")

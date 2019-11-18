@@ -7,7 +7,7 @@ with open("test-requirements.in") as f:
     tests_require = [line for line in f if line and line[0] not in "#-"]
 
 setup(
-    name="kiwi-request_session",
+    name="request_session",
     version="0.1.0",
     url="https://gitlab.skypicker.com/booking/request_session",
     author="Josef Podaný",
