@@ -1,4 +1,4 @@
-"""Base modules for implementing adapters."""
+"""Main RequestSession module."""
 import re
 import sys
 import time
@@ -22,197 +22,66 @@ Timeout = namedtuple("Timeout", ["connection_timeout", "read_timeout"])
 
 @attr.s
 class RequestSession(object):
+    """Helper class for HTTP requests with common settings.
 
-    """Helper class for url requests with common settings.
-
-    RequestSession is a helper class built on top of the `requests.Session`
-    to help with default configuration, retry, logging and metrics.
-    Every call to `get` or `post` methods will generate logs and metrics.
-    To name events and metrics we use `request_category`
-    parameters of the class or method.
-
-    Recommended way to use `RequestSession` is to create a client module
-    for accessing group of resources served on common endpoint with default values
-    that are valid for all or most of the calls you need to make.
-    For your convenience some defaults are provided like default timeout for calls etc.
-
-    Attributes
-        - host: Host name
-        - headers: Dictionary of HTTP Headers to send with the Request
-        - auth: Auth tuple to enable Basic/Digest/Custom HTTP Auth
-        - timeout: How many seconds to wait for the server to send data
-        - verify: Either a boolean, in which case it controls whether we verify
-                the server's TLS certificate, or a string, in which case it must
-                be a path to a CA bundle to use. Defaults to ``True``.
-        - max_retries: Number of retries if the execution fail with server error
-        - verbose_logging: If true add to event request parameters
-                        which are passed to request
-        - request_category: Name of event and metric
-        - datadog_service_name: String representing name of service in DataDog for
-                                better tracing
-
-    **Metrics**
-
-    On each call you make to `post` and `get` methods several metrics are sent.
-    All metric names are composed from `request_category` parameter
-    (either from class property or from call argument) and prefixed with `booking`:
-
-    - response time, booking.{request_category}.response_time:
-        response time metric is used to time how long it took for a client to receive
-        response (if any). Metric name is composed of `booking.` prefix,
-        `request category` as base for the metric name and `.response_time` as postfix
-
-    - request status, booking.{request_category}.request:
-        request status metric is used to track the success status of the request.
-
-        Status is tracked with two tag groups:
-
-            - status:
-                status can have 2 values: success or error
-
-            - error (optional):
-               error tag is added to event only if request is failed (status:error tag
-               is present in event) and it is used to describe error type in better
-               detail.
-
-               Possible values are:
-
-                - timeout: request has timed out
-
-                - http_error: server has responded http 4xx or 5xx
-
-                - connection_error: connection to server failed
-
-                - request_exception: other
-
-    Additionally, you can include you own tags that will be appended to metric tags.
-
-    **Logs**
-
-    Each exception on the request can be logged.
-    There are 2 implied levels of exception: error and warning.
-    Exception that happened on a try that can not be repeated will be treated as error
-    and will always be logged, exception that happened on a try that can be repeated is
-    treated as warning and it will not be logged if `report` parameter of the method
-    call is set to `False`.
-
-    Log event name is composed in following way:  {request_category}.failed
-
-    Parameters of the event:
-
-    - error_type:
-        always present in event and provides context of the error with possible values:
-
-            - read_timeout: request has timed out
-
-            - http_error: server has responded http 4xx or 5xx
-
-            - connection_error: connection to server failed
-
-            - request_exception: other
-
-    - description:
-        `description` contains string representation of the `requests.exception`
-
-    - text:
-        `text` contains response text in case of http error, if response object
-        had any text
-
-    - request_params (optional):
-        if attribute `verbose_logging` of the instance is set to `True` event will
-        also contain request parameters passed to request
-
-    Explanation of the distinction between error and warning exception type:
-
-    For example, we have a request that can be repeated:
-
-    - on a first try the request times out
-
-    - we repeat request and it is successful
-
-    In this case we reached the final goal, the request was successfully transferred,
-    even if it needed a push. The exception report can be informative
-    so we can log it as warning.
-
-    In another example, we have a request that can be repeated:
-
-    - on a first try the request times out
-
-    - we repeat request and it times out again and we reached maximum number of retry
-
-    In this case we did not reach the final goal, the request failed.
-    The first failure can be logged as a warning, but second failure was critical
-    and will always be logged as error.
-
-    **Retry**
-
-    It is possible to configure a retry in case of request failure.
-    By default the number of retries is set to 0.
-    You can set number of retries for all requests trough instance attribute
-    `max_retries` or you can pass it as an optional parameter `max_retries`.
-    The value passed trough method call has precedence.
-    The parameter is number of retries on failure, not maximum number of attempts.
-    Eg. if retry is set to 2 and there are no success on any attempt,
-    the total number of requests will be 3: nominal request and retry 2 times on
-    failure.
-
-
-    Note: the request will not be retried in case of client error,
-    that is if server responded with http 4xx, but not http 408 Request Timeout
-
-    If `sleep_before_repeat` parameter is passed,
-    the method will wait for that amount of seconds before retry.
-
-
-    Example::
-        session = RequestSession(host="google.com", max_retries=2)
-
-        response = session.get(
-            "search",
-            request_category="bmw.fan.club",
-            params={"q": "BMW+E90+330i"},
-            timeout=5,
-            tags=["search:bmw"]
-        )
+    :param str host: Host name
+    :param dict headers: (optional) Dictionary of HTTP headers to be used.
+    :param tuple auth: (optional) Authorization tuple to enable
+        Basic/Digest/Custom HTTP Auth.
+    :param timeout: (optional) How many seconds to wait until retrying.
+        Defaults to 10.
+    :type timeout: [float, Timeout, Tuple[float, float]]
+    :param verify: (optional) Either a boolean, in which case it controls whether
+        to verify the servers TLS certificate, or a string, in which case it must
+        be a path to a CA bundle to use. Defaults to ``True``.
+    :type verify: [bool, str]
+    :param int max_retries: (optional) Number of retries if the execution fails with
+        server error. Defaults to 0.
+    :param bool verbose_logging: (optional) If true, add request's parameters to event
+        being logged. Defaults to ``False``.
+    :param str request_category: (optional) Name of the event. ``request_category`` has
+        to passed to the object or as an argument when calling some HTTP method.
+    :param bool raise_for_status: (optional) Raise an exception in case of an error.
+        Defaults to ``False``.
+    :param str user_agent: (optional) User-Agent to be set in headers.
+    :param list[requests.Session] session_instances: (optional) A list of
+        ``requests.Session`` to be used to make the HTTP requests.
+    :param Ddtrace ddtrace: (optional) DataDog function to be used to trace, track and
+        send metrics for individual HTTP requests. If set, ``datadog_service_name``
+        must be set too. Defaults to ``None``.
+    :param str datadog_service_name: (optional) Name of the service in DataDog.
+    :param Statsd statsd: (optional) Datadog module to log metrics.
+    :param SentryClient sentry_client: (optional) Sentry module to log exceptions.
+    :param Callable logger: (optional) Logger to be used when logging to `stdout`
+        and `stderr`. If none is set, `builtin_logger` is used. Defaults to ``None``.
+    :param str log_prefix: (optional) Prefix to be used when logging to `stdout`
+        and `stderr`. Defaults to ``requestsession``.
+    :param Tuple[str] allowed_log_levels: (optional) Log levels that are supported by
+        the `logger` used. Defaults to
+        ``("debug", "info", "warning", "error", "critical", "exception", "log")``.
     """
 
     host = attr.ib(None, type=str, converter=str)
-
     headers = attr.ib(None, type=dict)
     auth = attr.ib(None, type=tuple)
-
     timeout = attr.ib(10, type=Union[float, Tuple[float, float], Timeout])
     verify = attr.ib(True, type=Union[bool, str])
-
     max_retries = attr.ib(0, type=int, validator=attr.validators.instance_of(int))
     verbose_logging = attr.ib(False, type=bool)
-
     request_category = attr.ib(None, type=str)
-
     raise_for_status = attr.ib(
         True, type=bool, validator=attr.validators.instance_of(bool)
     )
-
     user_agent = attr.ib(None, type=str)
     user_agent_components = attr.ib(None, type=UserAgentComponents)
-
     # session_intances is a class attribute
     session_instances = attr.ib([], type=List[requests.Session])
-
     ddtrace = attr.ib(None, type=Ddtrace)  # type: Ddtrace
-
     datadog_service_name = attr.ib(None, type=str)
-
     statsd = attr.ib(None, type=Statsd)  # type: Statsd
-
     sentry_client = attr.ib(None, type=SentryClient)  # type: SentryClient
-
     logger = attr.ib(None, type=Callable)
-
     log_prefix = attr.ib("requestsession", type=str)
-
-    metric_name = attr.ib("request", type=str)
-
     allowed_log_levels = attr.ib(
         ("debug", "info", "warning", "error", "critical", "exception", "log"),
         type=Tuple[str],
@@ -297,25 +166,25 @@ class RequestSession(object):
         # type: (...) -> Optional[requests.Response]
         r"""Delete request against a service.
 
-        :param str path: url path, will be combined with ``self.host`` to build whole
-            request url
-        :param str request_category: (optional) category for log and metric reporting,
-            can be set on client init
-        :param int max_retries: (optional) number of retries if the execution fail with
-            server error
-        :param bool report: (optional) report request exceptions to error_lib.swallow
-        :param float sleep_before_repeat: (optional) seconds to sleep before another
-            retry
-        :param list tags: (optional) tags for Datadog
-        :param bool raise_for_status: (optional) raise an exception in case of an error
-            response
-        :param \*\*request_kwargs: Optional arguments that request takes.
-            Check `_process()` for more info.
+        :param str path: URL path, will be combined with ``self.host`` to build whole
+            request url.
+        :param str request_category: (optional) Category for log and metric reporting,
+            can be set on client init.
+        :param int max_retries: (optional) Number of retries if the execution fail with
+            server error.
+        :param bool report: (optional) Report request exceptions to error_lib.swallow.
+        :param float sleep_before_repeat: (optional) Seconds to sleep before another
+            retry.
+        :param list tags: (optional) Tags for Datadog.
+        :param bool raise_for_status: (optional) Raise an exception in case of an error
+            response.
+        :param \*\*request_kwargs: Optional arguments that request takes
+            - check requests package documentation for further reference.
 
-        :return: http response object
+        :return requests.Response: HTTP Response Object
 
         :raises requests.RequestException: server error on operation
-            (if raise_for_status is True)
+            (if raise_for_status is True).
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path)
@@ -345,25 +214,25 @@ class RequestSession(object):
         # type: (...) -> Optional[requests.Response]
         r"""Get request against a service.
 
-        :param str path: url path, will be combined with ``self.host`` to build whole
-            request url
-        :param str request_category: (optional) category for log and metric reporting,
-            can be set on client init
-        :param int max_retries: (optional) number of retries if the execution fail with
-            server error
-        :param bool report: (optional) report request exceptions to error_lib.swallow
-        :param float sleep_before_repeat: (optional) seconds to sleep before another
-            retry
-        :param list tags: (optional) tags for Datadog
-        :param bool raise_for_status: (optional) raise an exception in case of an error
-            response
-        :param \*\*request_kwargs: Optional arguments that request takes.
-            Check `_process()` for more info.
+        :param str path: URL path, will be combined with ``self.host`` to build whole
+            request URL.
+        :param str request_category: (optional) Category for log and metric reporting,
+            can be set on client init.
+        :param int max_retries: (optional) Number of retries if the execution fail with
+            server error.
+        :param bool report: (optional) Report request exceptions to error_lib.swallow.
+        :param float sleep_before_repeat: (optional) Seconds to sleep before another
+            retry.
+        :param list tags: (optional) Tags for Datadog.
+        :param bool raise_for_status: (optional) Raise an exception in case of an error
+            response.
+        :param \*\*request_kwargs: Optional arguments that request takes
+            - check requests package documentation for further reference.
 
-        :return: http response object
+        :return requests.Response: HTTP Response Object
 
         :raises requests.RequestException: server error on operation
-            (if raise_for_status is True)
+            (if raise_for_status is True).
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path)
@@ -394,25 +263,25 @@ class RequestSession(object):
         r"""Post request against a service.
 
         :param str path: url path, will be combined with ``self.host`` to build whole
-            request url
-        :param str request_category: (optional) category for log and metric reporting,
-            can be set on client init
-        :param int max_retries: (optional) number of retries if the execution fail with
-            server error
-        :param bool report: (optional) report request exceptions to error_lib.swallow
-        :param float sleep_before_repeat: (optional) seconds to sleep before another
-            retry
-        :param list tags: (optional) tags for Datadog
-        :param bool raise_for_status: (optional) raise an exception in case of an error
-        response
-        :param \*\*request_kwargs: Optional arguments that request takes.
-            Check `_process()` for more info.
+            request url.
+        :param str request_category: (optional) Category for log and metric reporting,
+            can be set on client init.
+        :param int max_retries: (optional) Number of retries if the execution fail with
+            server error.
+        :param bool report: (optional) Report request exceptions to error_lib.swallow.
+        :param float sleep_before_repeat: (optional) Seconds to sleep before another
+            retry.
+        :param list tags: (optional) Tags for Datadog.
+        :param bool raise_for_status: (optional) Raise an exception in case of an error
+            response.
+        :param \*\*request_kwargs: Optional arguments that request takes
+            - check requests package documentation for further reference.
 
-        :return: http response object
+        :return requests.Response: HTTP Response Object
 
-        :raises requests.RequestException: server error on operation
-            (if raise_for_status is True)
-        :raises APIError: client error on operation (if raise_for_status is True)
+        :raises requests.RequestException: Server error on operation
+            (if raise_for_status is True).
+        :raises APIError: Client error on operation (if raise_for_status is True).
         """
         url = urljoin(self.host, path)
         return self._process(
@@ -441,25 +310,25 @@ class RequestSession(object):
         # type: (...) -> Optional[requests.Response]
         r"""Put request against a service.
 
-        :param str path: url path, will be combined with ``self.host`` to build whole
-            request url
-        :param str request_category: (optional) category for log and metric reporting,
-            can be set on client init
-        :param int max_retries: (optional) number of retries if the execution fail with
-            server error
-        :param bool report: (optional) report request exceptions to error_lib.swallow
-        :param float sleep_before_repeat: (optional) seconds to sleep before another
-            retry
-        :param list tags: (optional) tags for Datadog
-        :param bool raise_for_status: (optional) raise an exception in case of an
-            error response
-        :param \*\*request_kwargs: Optional arguments that request takes.
-            Check `_process()` for more info.
+        :param str path: URL path, will be combined with ``self.host`` to build whole
+            request url.
+        :param str request_category: (optional) Category for log and metric reporting,
+            can be set on client init.
+        :param int max_retries: (optional) Number of retries if the execution fail with
+            server error.
+        :param bool report: (optional) Report request exceptions to error_lib.swallow.
+        :param float sleep_before_repeat: (optional) Seconds to sleep before another
+            retry.
+        :param list tags: (optional) Tags for Datadog.
+        :param bool raise_for_status: (optional) Raise an exception in case of an error
+            response.
+        :param \*\*request_kwargs: Optional arguments that request takes
+            - check requests package documentation for further reference.
 
-        :return: http response object
+        :return requests.Response: HTTP Response Object
 
         :raises requests.RequestException: server error on operation
-            (if raise_for_status is True)
+            (if raise_for_status is True).
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path)
@@ -492,49 +361,21 @@ class RequestSession(object):
 
         :param str request_type: `post` or `get`
         :param str url: URL for the new Request object.
-        :param str request_category: (optional) category for log and metric reporting,
-            can be set on client init
-        :param int max_retries: number of retries if the execution fail with server
-            error
-        :param bool report: report request exceptions to error_lib.swallow
-        :param float sleep_before_repeat: seconds to sleep before another retry
+        :param str request_category: (optional) Category for log and metric reporting,
+            can be set on client init.
+        :param int max_retries: Number of retries if the execution fail with server
+            error.
+        :param bool report: Report request exceptions to error_lib.swallow.
+        :param float sleep_before_repeat: Seconds to sleep before another retry.
         :param list tags: tags for Datadog
-        :param bool raise_for_status: raise an exception in case of an error response
+        :param bool raise_for_status: Raise an exception in case of an error response.
         :param \*\*request_kwargs: Optional arguments that request takes:
 
-        * url: (optional) to override ``url`` param.
-        * params: (optional) Dictionary or bytes to be sent in the query string for
-            the Request.
-        * data: (optional) Dictionary or list of tuples ``[(key, value)]``
-            (will be form-encoded), bytes, or file-like object to send in the body of
-            the Request.
-        * json: (optional) A JSON serializable Python object to send in the body of
-            the Request.
-        * headers: (optional) Dictionary of HTTP Headers to send with the Request.
-        * cookies: (optional) Dict or CookieJar object to send with the Request.
-        * files: (optional) Dictionary of ``'name': file-like-objects``
-        * auth: (optional) Auth tuple to enable Basic/Digest/Custom HTTP Auth.
-        * timeout: (optional) How many seconds to wait for the server to send data
-            before giving up, as a float, or a :ref:`(connect timeout, read timeout)
-            <timeouts>` tuple.
-        * allow_redirects: (optional) Boolean.
-            Enable/disable GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD redirection.
-            Defaults to ``True``.
-        * proxies: (optional) Dictionary mapping protocol to the URL of the proxy.
-        * verify: (optional) Either a boolean, in which case it controls whether we
-            verify the server's TLS certificate, or a string,
-            in which case it must be a path to a CA bundle to use.
-            Defaults to ``True``.
-        * stream: (optional) if ``False``, the response content will be immediately
-            downloaded.
-        * cert: (optional) if String, path to ssl client cert file (.pem).
-            If Tuple, ('cert', 'key') pair.
+        :return requests.Response: HTTP Response Object
 
-        :return: http response object
-
-        :raises requests.RequestException: server error on operation
-            (if raise_for_status is True)
-        :raises APIError: client error on operation (if raise_for_status is True)
+        :raises requests.RequestException: Server error on operation.
+            (if raise_for_status is True).
+        :raises APIError: Client error on operation (if raise_for_status is True).
         """
         tags = [] if not tags else tags
 
@@ -569,7 +410,7 @@ class RequestSession(object):
                 success_tags.append("status:success")
 
                 self.metric_increment(
-                    metric=self.metric_name,
+                    metric="request",
                     request_category=request_category,
                     tags=success_tags,
                     attempt=run,
@@ -663,12 +504,12 @@ class RequestSession(object):
         # type: (str, Dict[str, Any], List[str], int, str) -> requests.Response
         """Send the request and metrics.
 
-        :param request_type: HTTP method
-        :param request_params: parameters to call the request with
-        :param tags: tags to be added to metrics
-        :param run: attempt number
-        :param request_category: category for log and metric reporting
-        :return: requests.Response
+        :param str request_type: HTTP method
+        :param Dict[str, Any] request_params: Parameters to call the request with.
+        :param List[str] tags: Tags to be added to metrics.
+        :param int run: Attempt number.
+        :param str request_category: Category for log and metric reporting.
+        :return requests.Response: HTTP Response Object.
         """
         metric_name = "{request_category}.response_time".format(
             request_category=request_category
@@ -683,10 +524,10 @@ class RequestSession(object):
         # type: (Dict, requests.Response, List[str], str) -> None
         """Prepare parameters and log response.
 
-        :param request_params: parameters used in the request
-        :param response: response
-        :param tags: tags denoting success of the request
-        :param request_category: category of the request
+        :param Dict request_params: Parameters used in the request.
+        :param requests.Response response: HTTP Response.
+        :param List[str] tags: Tags denoting success of the request.
+        :param str request_category: Category of the request.
         """
         extra_params = (
             {
@@ -706,10 +547,8 @@ class RequestSession(object):
         """Call sleep function and send metrics to datadog.
 
         :param float seconds: float or int number of seconds to sleep
-        :param request_category: request category
-        :param tags: tags for datadog
-
-        :return: None
+        :param str request_category: request category
+        :param List[str] tags: tags for datadog
         """
         trace_name = request_category.replace(".", "_") + "_retry"
         meta = {"request_category": request_category}
@@ -723,10 +562,10 @@ class RequestSession(object):
         # type: (str, str, list, Optional[int]) -> None
         """Metric request increment.
 
-        :param metric: name of the metric to be incremented
-        :param request_category: request category
-        :param tags: tags to increment metric with
-        :param attempt: number of attempt of the request
+        :param str metric: Name of the metric to be incremented.
+        :param str request_category: request category
+        :param List[str] tags: Tags to increment metric with.
+        :param int attempt: Number of attempt of the request.
         """
         new_tags = list(tags) if tags else []
         if attempt:
@@ -740,10 +579,9 @@ class RequestSession(object):
 
     def log(self, level, event, **kwargs):
         # type: (str, str, **Any) -> None
-        """Proxy to log with provided logger.
+        r"""Proxy to log with provided logger.
 
         Builtin logging library is used otherwise.
-
         :param level: string describing log level
         :param event: event (<request_category> or <request_category>.<action>)
         :param **kwargs: kw arguments to be logged
@@ -770,11 +608,11 @@ class RequestSession(object):
         # type: (...) -> None
         """Assign appropriate metric and log for exception.
 
-        :param error: exception that occured
-        :param request_category: string describing request category
-        :param request_params: parameters used to make the HTTP call
-        :param dd_tags: tags to increment metric with
-        :param status_code: HTTP status code of the response
+        :param requests.RequestException error: exception that occured
+        :param str request_category: String describing request category.
+        :param Dict request_params: Parameters used to make the HTTP call.
+        :param List[str] dd_tags: Tags to increment metric with.
+        :param Union[int, None] Status_code: HTTP status code of the response.
         """
         tags = (
             ["status:error", "attempt:{}".format(attempt)]
@@ -813,7 +651,7 @@ class RequestSession(object):
         )
 
         self.metric_increment(
-            metric=self.metric_name, request_category=request_category, tags=tags
+            metric="request", request_category=request_category, tags=tags
         )
 
     @staticmethod
@@ -821,9 +659,9 @@ class RequestSession(object):
         # type: (requests.RequestException, Optional[int]) -> bool
         """Exception type and response code match server error.
 
-        :param error: exception
-        :param http_code: response HTTP status code
-        :return: if error is server error
+        :param requests.RequestException error: exception
+        :param int http_code: (optional) response HTTP status code
+        :return bool: whether error is server error
         """
         if not isinstance(error, requests.exceptions.HTTPError):
             return True
@@ -838,8 +676,8 @@ class RequestSession(object):
         # type: (Union[requests.Response, Any]) -> str
         """Return response text if exists.
 
-        :param response: requests.Response object
-        :return: response text
+        :param request.Response response: HTTP Response Object
+        :return str: response text
         """
         try:
             return response.text
@@ -848,10 +686,13 @@ class RequestSession(object):
 
     def _get_request_category(self, request_category=None):
         # type: (str) -> str
-        """Get request category.
+        """Get request category. Passed in request category has a precedence.
 
-        :param request_category: request_category passed in function
-        :return: request category method call, RequestSession init or default
+        :param str request_category: (optional) Request category passed in function.
+            Defaults to `None`.
+        :return: Request category
+
+        :raises APIError: Raised when `request_category` was not provided.
         """
         request_category = request_category or self.request_category
         if request_category is None:

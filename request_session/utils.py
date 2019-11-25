@@ -52,6 +52,7 @@ def null_context_manager(*args, **kwargs):
 
 def reraise_as_third_party():
     # type: () -> None
+    """Add tags to raised exception for Sentry."""
     setattr(sys.exc_info()[1], "__sentry_source", "third_party")
     setattr(sys.exc_info()[1], "__sentry_pd_alert", "disabled")
 

@@ -125,6 +125,10 @@ class Ddtrace(object):
 class Statsd(object):
     """Statsd protocol."""
 
+    config = Config
+    tracer = Tracer
+    namespace = None  # type: str
+
     def increment(self, metric, value=1, tags=None, sample_rate=1):
         # type: (str, int, List[str], int) -> None
         """Increment a counter, optionally setting a value, tags and a sample rate.

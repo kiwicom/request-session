@@ -355,16 +355,15 @@ def test_metric_increment(
     mocker, request_session, path, max_retries, status, error, call_count
 ):
     """Test correct incrementing of metrics when call is performed."""
-    metric_name = "metric_name"
     mock_statsd = mocker.MagicMock(spec_set=Statsd)
     client = request_session(
-        max_retries=max_retries, statsd=mock_statsd, metric_name=metric_name
+        max_retries=max_retries, statsd=mock_statsd
     )  # type: RequestSession
     client.get(path=path, raise_for_status=False)
 
     calls = []
     for attempt in range(1, call_count + 1):
-        metric = "{}.{}".format(client._get_request_category(), metric_name)
+        metric = "{}.{}".format(client._get_request_category(), "request")
         tags = ["status:{}".format(status), "attempt:{}".format(attempt)]
         if error:
             tags.append("error:{}".format(error))
@@ -671,7 +670,7 @@ def test_exception_and_log_metrics(request_session, mocker, inputs, expected):
     )
 
     mock_metric_increment.assert_called_once_with(
-        metric=client.metric_name,
+        metric="request",
         request_category=client.request_category,
         tags=expected["tags"],
     )

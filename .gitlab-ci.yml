@@ -16,6 +16,13 @@ mypy:
   script:
     - mypy -p request_session --ignore-missing-imports
 
+pages:
+  script:
+    - apk add --no-cache make
+    - pip install -r requirements.txt -r docs-requirements.txt -e .
+    - make --directory=docs html
+    - mv docs/build/html public
+
 include:
   - "https://ci-files.skypicker.com/templates/build/pre_commit.yml"
   - "https://ci-files.skypicker.com/templates/build/zoo.yml"
