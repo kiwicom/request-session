@@ -15,7 +15,7 @@ from ._compat import urljoin
 from .protocols import Ddtrace, SentryClient, Statsd
 from .utils import APIError, InvalidUserAgentString, UserAgentComponents, dict_to_string
 from .utils import logger as builtin_logger
-from .utils import null_context_manager, reraise_as_third_party, split_tags_and_update
+from .utils import reraise_as_third_party, split_tags_and_update
 
 Timeout = namedtuple("Timeout", ["connection_timeout", "read_timeout"])
 
@@ -514,9 +514,11 @@ class RequestSession(object):
         metric_name = "{request_category}.response_time".format(
             request_category=request_category
         )
-        timed = self.statsd.timed if self.statsd is not None else null_context_manager
 
-        with timed(metric_name, use_ms=True, tags=tags):
+        if not self.statsd:
+            return self.session.request(method=request_type, **request_params)
+
+        with self.statsd.timed(metric_name, use_ms=True, tags=tags):
             response = self.session.request(method=request_type, **request_params)
         return response
 
@@ -584,7 +586,7 @@ class RequestSession(object):
         Builtin logging library is used otherwise.
         :param level: string describing log level
         :param event: event (<request_category> or <request_category>.<action>)
-        :param **kwargs: kw arguments to be logged
+        :param \*\*kwargs: kw arguments to be logged
         """
         if not level in self.allowed_log_levels:
             raise APIError("Provided log level is not allowed.")

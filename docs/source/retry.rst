@@ -5,7 +5,7 @@ It is possible to configure a retry in case of request failure.
 The number of retries is set to 0 by default.
 You can set the number of retries for all requests trough the object's attribute
 ``max_retries`` or you can pass the number as an optional parameter
-``max_retries``. when calling an HTTP method.
+``max_retries``. When calling an HTTP method.
 The value passed trough method call has precedence.
 The parameter is the number of retries on failure, not a maximum number of attempts.
 E.g. if retry is set to 2 and there is no success on any attempt,

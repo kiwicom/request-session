@@ -50,10 +50,10 @@ methods as a keyword argument:
 * verify: (*optional*) Can be either:
 
   * A boolean, in which case it controls whether we
-  verify the TLS certificate of the server.
+    verify the TLS certificate of the server.
 
   * A string, in which case it must be a path to
-  a CA bundle to use. Defaults to ``True``.
+    a CA bundle to use. Defaults to ``True``.
 
 * stream: (*optional*) If it is ``False``, the response content is immediately
   downloaded.

@@ -1,7 +1,6 @@
 """Utilites used in RequestSession."""
 import logging
 import sys
-from contextlib import contextmanager
 from typing import Any, Dict, Iterator, List, Text
 
 import attr
@@ -41,13 +40,6 @@ class APIError(Exception):
         self.original_exc = kwargs.get("original_exc")
 
         Exception.__init__(self, *args)
-
-
-@contextmanager
-def null_context_manager(*args, **kwargs):
-    # type: (Any, Any) -> Iterator[None]
-    """Do nothing."""
-    yield
 
 
 def reraise_as_third_party():
