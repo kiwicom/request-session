@@ -8,7 +8,7 @@ with open("test-requirements.in") as f:
 
 setup(
     name="request_session",
-    version="0.1.0",
+    version="0.9.0",
     url="https://gitlab.skypicker.com/booking/request_session",
     author="Josef Podaný",
     author_email="josef.podany@kiwi.com",
@@ -17,10 +17,8 @@ setup(
     tests_require=tests_require,
     include_package_data=True,
     classifiers=[
-        "Private :: Do Not Upload",
-        "Development Status :: 4 - Beta",
-        "Environment :: Console",
         "Operating System :: OS Independent",
+        "Topic :: Internet :: WWW/HTTP",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
     ],
