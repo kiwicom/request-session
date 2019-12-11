@@ -344,6 +344,54 @@ class RequestSession(object):
             **request_kwargs
         )
 
+    def patch(
+        self,
+        path,  # type: str
+        request_category=None,  # type: Optional[str]
+        max_retries=None,  # type: Optional[int]
+        report=True,  # type: Optional[bool]
+        sleep_before_repeat=None,  # type: Optional[float]
+        tags=None,  # type: Optional[list]
+        raise_for_status=None,  # type: Optional[bool]
+        **request_kwargs  # type: Any
+    ):
+        # type: (...) -> Optional[requests.Response]
+        r"""Patch request against a service.
+
+        :param str path: URL path, will be combined with ``self.host`` to build whole
+            request url.
+        :param str request_category: (optional) Category for log and metric reporting,
+            can be set on client init.
+        :param int max_retries: (optional) Number of retries if the execution fail with
+            server error.
+        :param bool report: (optional) Report request exceptions to error_lib.swallow.
+        :param float sleep_before_repeat: (optional) Seconds to sleep before another
+            retry.
+        :param list tags: (optional) Tags for Datadog.
+        :param bool raise_for_status: (optional) Raise an exception in case of an error
+            response.
+        :param \*\*request_kwargs: Optional arguments that request takes
+            - check requests package documentation for further reference.
+
+        :return requests.Response: HTTP Response Object
+
+        :raises requests.RequestException: server error on operation
+            (if raise_for_status is True).
+        :raises APIError: client error on operation (if raise_for_status is True)
+        """
+        url = urljoin(self.host, path)
+        return self._process(
+            "patch",
+            url,
+            request_category=request_category,
+            max_retries=max_retries,
+            report=report,
+            sleep_before_repeat=sleep_before_repeat,
+            tags=tags,
+            raise_for_status=raise_for_status,
+            **request_kwargs
+        )
+
     def _process(
         self,
         request_type,  # type: str

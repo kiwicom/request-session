@@ -159,6 +159,7 @@ def test_close_all_sessions(request_session):
         ("post", "/status/200", 200),
         ("put", "/status/200", 200),
         ("delete", "/status/200", 200),
+        ("patch", "/status/200", 200),
     ],
 )
 def test_method(request_session, method, path, expected_status):
