@@ -10,7 +10,7 @@ setup(
     name="request_session",
     version="0.9.0",
     url="https://gitlab.skypicker.com/booking/request_session",
-    author="Josef Podaný",
+    author="Josef Podany",
     author_email="josef.podany@kiwi.com",
     packages=find_packages(),
     install_requires=install_requires,
