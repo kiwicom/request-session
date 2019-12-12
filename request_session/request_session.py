@@ -152,34 +152,14 @@ class RequestSession(object):
             session.close()
         self.session_instances = []
 
-    def delete(
-        self,
-        path,  # type: str
-        request_category=None,  # type: Optional[str]
-        max_retries=None,  # type: Optional[int]
-        report=True,  # type: Optional[bool]
-        sleep_before_repeat=None,  # type: Optional[float]
-        tags=None,  # type: Optional[list]
-        raise_for_status=None,  # type: Optional[bool]
-        **request_kwargs  # type: Any
-    ):
-        # type: (...) -> Optional[requests.Response]
+    def delete(self, path, **kwargs):
+        # type: (str, Any) -> Optional[requests.Response]
         r"""Delete request against a service.
 
         :param str path: URL path, will be combined with ``self.host`` to build whole
             request url.
-        :param str request_category: (optional) Category for log and metric reporting,
-            can be set on client init.
-        :param int max_retries: (optional) Number of retries if the execution fail with
-            server error.
-        :param bool report: (optional) Report request exceptions to error_lib.swallow.
-        :param float sleep_before_repeat: (optional) Seconds to sleep before another
-            retry.
-        :param list tags: (optional) Tags for Datadog.
-        :param bool raise_for_status: (optional) Raise an exception in case of an error
-            response.
-        :param \*\*request_kwargs: Optional arguments that request takes
-            - check requests package documentation for further reference.
+        :param \*\*kwargs: Optional arguments that request takes
+            - check request_session and requests packages documentation for further reference.
 
         :return requests.Response: HTTP Response Object
 
@@ -188,46 +168,16 @@ class RequestSession(object):
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path)
-        return self._process(
-            "delete",
-            url,
-            request_category=request_category,
-            max_retries=max_retries,
-            report=report,
-            sleep_before_repeat=sleep_before_repeat,
-            tags=tags,
-            raise_for_status=raise_for_status,
-            **request_kwargs
-        )
+        return self._process("delete", url, **kwargs)
 
-    def get(
-        self,
-        path,  # type: str
-        request_category=None,  # type: Optional[str]
-        max_retries=None,  # type: Optional[int]
-        report=True,  # type: Optional[bool]
-        sleep_before_repeat=None,  # type: Optional[float]
-        tags=None,  # type: Optional[list]
-        raise_for_status=None,  # type: Optional[bool]
-        **request_kwargs  # type: Any
-    ):
-        # type: (...) -> Optional[requests.Response]
+    def get(self, path, **kwargs):
+        # type: (str, Any) -> Optional[requests.Response]
         r"""Get request against a service.
 
         :param str path: URL path, will be combined with ``self.host`` to build whole
             request URL.
-        :param str request_category: (optional) Category for log and metric reporting,
-            can be set on client init.
-        :param int max_retries: (optional) Number of retries if the execution fail with
-            server error.
-        :param bool report: (optional) Report request exceptions to error_lib.swallow.
-        :param float sleep_before_repeat: (optional) Seconds to sleep before another
-            retry.
-        :param list tags: (optional) Tags for Datadog.
-        :param bool raise_for_status: (optional) Raise an exception in case of an error
-            response.
-        :param \*\*request_kwargs: Optional arguments that request takes
-            - check requests package documentation for further reference.
+        :param \*\*kwargs: Optional arguments that request takes
+            - check request_session and requests packages documentation for further reference.
 
         :return requests.Response: HTTP Response Object
 
@@ -236,46 +186,16 @@ class RequestSession(object):
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path)
-        return self._process(
-            "get",
-            url,
-            request_category=request_category,
-            max_retries=max_retries,
-            report=report,
-            sleep_before_repeat=sleep_before_repeat,
-            tags=tags,
-            raise_for_status=raise_for_status,
-            **request_kwargs
-        )
+        return self._process("get", url, **kwargs)
 
-    def post(
-        self,
-        path,  # type: str
-        request_category=None,  # type: Optional[str]
-        max_retries=None,  # type: Optional[int]
-        report=True,  # type: Optional[bool]
-        sleep_before_repeat=None,  # type: Optional[float]
-        tags=None,  # type: Optional[list]
-        raise_for_status=None,  # type: Optional[bool]
-        **request_kwargs  # type: Any
-    ):
-        # type: (...) -> Optional[requests.Response]
+    def post(self, path, **kwargs):
+        # type: (str, Any) -> Optional[requests.Response]
         r"""Post request against a service.
 
         :param str path: url path, will be combined with ``self.host`` to build whole
             request url.
-        :param str request_category: (optional) Category for log and metric reporting,
-            can be set on client init.
-        :param int max_retries: (optional) Number of retries if the execution fail with
-            server error.
-        :param bool report: (optional) Report request exceptions to error_lib.swallow.
-        :param float sleep_before_repeat: (optional) Seconds to sleep before another
-            retry.
-        :param list tags: (optional) Tags for Datadog.
-        :param bool raise_for_status: (optional) Raise an exception in case of an error
-            response.
-        :param \*\*request_kwargs: Optional arguments that request takes
-            - check requests package documentation for further reference.
+        :param \*\*kwargs: Optional arguments that request takes
+            - check request_session and requests packages documentation for further reference.
 
         :return requests.Response: HTTP Response Object
 
@@ -284,46 +204,16 @@ class RequestSession(object):
         :raises APIError: Client error on operation (if raise_for_status is True).
         """
         url = urljoin(self.host, path)
-        return self._process(
-            "post",
-            url,
-            request_category=request_category,
-            max_retries=max_retries,
-            report=report,
-            sleep_before_repeat=sleep_before_repeat,
-            tags=tags,
-            raise_for_status=raise_for_status,
-            **request_kwargs
-        )
+        return self._process("post", url, **kwargs)
 
-    def put(
-        self,
-        path,  # type: str
-        request_category=None,  # type: Optional[str]
-        max_retries=None,  # type: Optional[int]
-        report=True,  # type: Optional[bool]
-        sleep_before_repeat=None,  # type: Optional[float]
-        tags=None,  # type: Optional[list]
-        raise_for_status=None,  # type: Optional[bool]
-        **request_kwargs  # type: Any
-    ):
-        # type: (...) -> Optional[requests.Response]
+    def put(self, path, **kwargs):
+        # type: (str, Any) -> Optional[requests.Response]
         r"""Put request against a service.
 
         :param str path: URL path, will be combined with ``self.host`` to build whole
             request url.
-        :param str request_category: (optional) Category for log and metric reporting,
-            can be set on client init.
-        :param int max_retries: (optional) Number of retries if the execution fail with
-            server error.
-        :param bool report: (optional) Report request exceptions to error_lib.swallow.
-        :param float sleep_before_repeat: (optional) Seconds to sleep before another
-            retry.
-        :param list tags: (optional) Tags for Datadog.
-        :param bool raise_for_status: (optional) Raise an exception in case of an error
-            response.
-        :param \*\*request_kwargs: Optional arguments that request takes
-            - check requests package documentation for further reference.
+        :param \*\*kwargs: Optional arguments that request takes
+            - check request_session and requests packages documentation for further reference.
 
         :return requests.Response: HTTP Response Object
 
@@ -332,46 +222,16 @@ class RequestSession(object):
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path)
-        return self._process(
-            "put",
-            url,
-            request_category=request_category,
-            max_retries=max_retries,
-            report=report,
-            sleep_before_repeat=sleep_before_repeat,
-            tags=tags,
-            raise_for_status=raise_for_status,
-            **request_kwargs
-        )
+        return self._process("put", url, **kwargs)
 
-    def patch(
-        self,
-        path,  # type: str
-        request_category=None,  # type: Optional[str]
-        max_retries=None,  # type: Optional[int]
-        report=True,  # type: Optional[bool]
-        sleep_before_repeat=None,  # type: Optional[float]
-        tags=None,  # type: Optional[list]
-        raise_for_status=None,  # type: Optional[bool]
-        **request_kwargs  # type: Any
-    ):
-        # type: (...) -> Optional[requests.Response]
+    def patch(self, path, **kwargs):
+        # type: (str, Any) -> Optional[requests.Response]
         r"""Patch request against a service.
 
         :param str path: URL path, will be combined with ``self.host`` to build whole
             request url.
-        :param str request_category: (optional) Category for log and metric reporting,
-            can be set on client init.
-        :param int max_retries: (optional) Number of retries if the execution fail with
-            server error.
-        :param bool report: (optional) Report request exceptions to error_lib.swallow.
-        :param float sleep_before_repeat: (optional) Seconds to sleep before another
-            retry.
-        :param list tags: (optional) Tags for Datadog.
-        :param bool raise_for_status: (optional) Raise an exception in case of an error
-            response.
-        :param \*\*request_kwargs: Optional arguments that request takes
-            - check requests package documentation for further reference.
+        :param \*\*kwargs: Optional arguments that request takes
+            - check request_session and requests packages documentation for further reference.
 
         :return requests.Response: HTTP Response Object
 
@@ -380,17 +240,7 @@ class RequestSession(object):
         :raises APIError: client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path)
-        return self._process(
-            "patch",
-            url,
-            request_category=request_category,
-            max_retries=max_retries,
-            report=report,
-            sleep_before_repeat=sleep_before_repeat,
-            tags=tags,
-            raise_for_status=raise_for_status,
-            **request_kwargs
-        )
+        return self._process("patch", url, **kwargs)
 
     def _process(
         self,
