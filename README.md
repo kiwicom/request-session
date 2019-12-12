@@ -1,14 +1,16 @@
-# request_session
+# `request_session`
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Python: 3.7](https://img.shields.io/badge/python-3.7-green.svg)](https://python.org)
-[![Python: 3.6](https://img.shields.io/badge/python-3.6-green.svg)](https://python.org)
-[![Python: 2.7](https://img.shields.io/badge/python-2.7-green.svg)](https://python.org)
 
-**RequestSession** is an HTTP library built on top of [`requests`](https://requests.kennethreitz.org/en/master/)
+**`request_session`** is an HTTP library built on top of [`requests`](https://requests.kennethreitz.org/en/master/)
 that makes your live easier by retrying whenever a request fails,
-logs the results or even sends metrics to DataDogHQ.
-**RequestSession** can measure the time of the request.
+logs the results or even sends metrics and traces to DataDogHQ.
+**RequestSession** also measures the time of the request.
+
+Use **`RequestSession`** to create a client module for accessing a group of resources
+served on a common endpoint with default values valid for all or
+most of the calls you need to make. For your convenience,
+some defaults are already provided.
 
 ## Usage
 
@@ -24,25 +26,29 @@ from request_session import RequestSession
 client = RequestSession(
     host="https://jobs.kiwi.com",
     max_retries=4,          # how many times to retry in case server error occurs
-    raise_for_status=True,  # raise an error if failed on every attempt
+    raise_for_status=True,  # raise an exception if failed on every attempt
 )
 
 response = client.get(
     path="/",
-    sleep_before_repeat=1,      # how long to wait untill next try  
-    tags=["get:jobs.kiwi.com"], # tags to send to DataDogHQ
+    sleep_before_repeat=1,      # how many seconds to wait untill next try  
     request_category="jobs",    # what to log to stdout/stderr
 )
 ```
 
-Some benefits of using `RequestSession`:
+## Benefits of using `RequestSession`
 
-- Metrics: On each call you make to `GET`, `POST`, `PUT` and `DELETE` methods,
-  several metrics are sent. (Duration of the request, how many requests were sent)
+* **Retry**: It is possible to configure a retry in case of request failure.
+* **Logs**: Result of the request can also be logged to `stdout`.
+* **Metrics**: On each call you make to `GET`, `POST`, `PUT`, `PATCH`, and
+DELETE` methods, several metrics are sent to your datadog client -
+duration of the request, how many requests were sent,
+outcome of the request (a DataDog integration is needed).
+* **Tracing**: `RequestSession` can send tracing info to DataDog
+(an APM integration is needed).
 
-- Logs: Each exception on the request can be logged.
-
-- Retry: It is possible to configure a retry in case of request failure.
+You can find more details about `RequestSession`'s benefits and examples in
+[the official documentation](https://readthedocs.com).
 
 ## Contributing
 
