@@ -17,7 +17,7 @@ Installation
 ************
 
 ``request_session`` can be installed using
-``pip install request_session``.
+``pip install request-session``.
 
 Basic Usage
 ***********

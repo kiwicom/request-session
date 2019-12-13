@@ -1,8 +1,9 @@
-# `request_session`
+# request-session
 
+[![Versions](https://img.shields.io/pypi/pyversions/request-session)](https://pypi.org/project/request-session/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-**`request_session`** is an HTTP library built on top of [`requests`](https://requests.kennethreitz.org/en/master/)
+**`request-session`** is an HTTP library built on top of [`requests`](https://requests.kennethreitz.org/en/master/)
 that makes your live easier by retrying whenever a request fails,
 logs the results or even sends metrics and traces to DataDogHQ.
 **RequestSession** also measures the time of the request.
@@ -14,10 +15,10 @@ some defaults are already provided.
 
 ## Usage
 
-To install `request_session`, use pip:
+To install `request-session`, use pip:
 
 ```bash
-pip install request_session
+pip install request-session
 ```
 
 ```python
