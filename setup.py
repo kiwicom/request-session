@@ -13,7 +13,7 @@ with open("test-requirements.in") as f:
 
 setup(
     name="request_session",
-    version="0.9.2",
+    version="0.9.3",
     url="https://gitlab.skypicker.com/booking/request_session",
     description="Python HTTP requests on steroids",
     long_description=readme,
