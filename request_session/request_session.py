@@ -15,7 +15,7 @@ from ._compat import urljoin
 from .protocols import Ddtrace, SentryClient, Statsd
 from .utils import APIError, InvalidUserAgentString, UserAgentComponents, dict_to_string
 from .utils import logger as builtin_logger
-from .utils import reraise_as_third_party, split_tags_and_update
+from .utils import reraise_as_third_party, split_tags_and_update, traced_sleep
 
 Timeout = namedtuple("Timeout", ["connection_timeout", "read_timeout"])
 
@@ -453,10 +453,7 @@ class RequestSession(object):
         trace_name = request_category.replace(".", "_") + "_retry"
         meta = {"request_category": request_category}
         split_tags_and_update(meta, tags)
-        with self.ddtrace.tracer.trace(trace_name, service="sleep") as span:
-            if meta:
-                span.set_metas(meta)
-            time.sleep(seconds)  # Ignore KeywordBear
+        traced_sleep(trace_name, seconds, self.ddtrace, meta)
 
     def metric_increment(self, metric, request_category, tags, attempt=None):
         # type: (str, str, list, Optional[int]) -> None

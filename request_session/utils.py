@@ -1,9 +1,12 @@
 """Utilites used in RequestSession."""
 import logging
 import sys
-from typing import Any, Dict, Iterator, List, Text
+import time
+from typing import Any, Dict, Iterator, List, Optional, Text
 
 import attr
+
+from .protocols import Ddtrace
 
 DATEFMT = "%Y-%m-%d %H:%M.%S"
 FORMAT = "%(asctime)s %(message)s\t  %(tags)s "
@@ -64,3 +67,19 @@ def dict_to_string(dictionary):
     return " ".join(
         [u"{}={}".format(key, value) for key, value in sorted(dictionary.items())]
     )
+
+
+def traced_sleep(trace_name, seconds, ddtrace, meta=None):
+    # type: (str, float, Ddtrace, Optional[dict]) -> None
+    """Sleep function that is traced in datadog.
+
+    :param str trace_name: the name of the operation being traced
+    :param float seconds: seconds param for sleep()
+    :param dict meta: meta tags to be added to trace e.g. `{"caller": "create_connection"}`
+
+    :return: None
+    """
+    with ddtrace.tracer.trace(trace_name, service="sleep") as span:
+        if meta:
+            span.set_metas(meta)
+        time.sleep(seconds)

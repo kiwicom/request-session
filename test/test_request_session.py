@@ -504,19 +504,15 @@ def test_sleep(httpbin, mocker):
     tags = ["testing:sleep"]
     meta = {"request_category": REQUEST_CATEGORY, "testing": "sleep"}
     mock_ddtrace = mocker.MagicMock(spec_set=Ddtrace)
-    mock_span = mocker.Mock()
-    mock_ddtrace.tracer.trace.return_value.__enter__.return_value = mock_span
-    mock_time = mocker.patch("request_session.request_session.time", autospec=True)
+    mock_traced_sleep = mocker.patch(
+        "request_session.request_session.traced_sleep", autospec=True
+    )
     client = RequestSession(host=httpbin.url, ddtrace=mock_ddtrace)
-
     client.sleep(seconds, REQUEST_CATEGORY, tags)
 
-    mock_ddtrace.tracer.trace.assert_called_once_with(
-        REQUEST_CATEGORY + "_retry", service="sleep"
+    mock_traced_sleep.assert_called_once_with(
+        REQUEST_CATEGORY + "_retry", seconds, mock_ddtrace, meta
     )
-
-    mock_span.set_metas.assert_called_once_with(meta)
-    mock_time.sleep.assert_called_once_with(seconds)
 
 
 @pytest.mark.parametrize(
