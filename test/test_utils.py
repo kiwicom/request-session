@@ -1,5 +1,7 @@
 """Test the utilities."""
 import sys
+from typing import Dict, List
+from unittest.mock import Mock
 
 import pytest
 
@@ -13,6 +15,7 @@ from request_session.utils import (
 
 
 def test_reraise_as_third_party(mocker):
+    # type: (Mock) -> None
     mock_sys = mocker.patch("request_session.utils.sys", spec_set=sys)
     reraise_as_third_party()
 
@@ -28,6 +31,7 @@ def test_reraise_as_third_party(mocker):
     ],
 )
 def test_split_tags_and_update(dictionary, tags, expected):
+    # type: (Dict[str, str], List[str], Dict[str, str]) -> None
     split_tags_and_update(dictionary, tags)
     assert dictionary == expected
 
@@ -41,10 +45,12 @@ def test_split_tags_and_update(dictionary, tags, expected):
     ],
 )
 def test_dict_to_string(dictionary, expected):
+    # type: (Dict[str, str], str) -> None
     assert dict_to_string(dictionary) == expected
 
 
 def test_traced_sleep(mocker):
+    # type: (Mock) -> None
     seconds = 1
     request_category = "request_category"
     meta = {"request_category": request_category, "testing": "sleep"}

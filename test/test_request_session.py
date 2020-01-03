@@ -1,7 +1,10 @@
 """Test the main module."""
 import itertools
 import sys
+from typing import Any, Callable, Dict, Iterator, List, Union
+from unittest.mock import Mock
 
+import httpbin as Httpbin
 import pytest
 import requests
 import simplejson as json
@@ -29,9 +32,10 @@ USER_AGENT_ERROR_MSG = "Provided User-Agent string is not valid."
 
 
 def test_init(mocker, httpbin):
+    # type: (Mock, Httpbin) -> None
     """Test initialization of RequestSession."""
     mock_ddtrace = mocker.Mock(spec_set=Ddtrace)
-    mock_tracing_config = dict()
+    mock_tracing_config = dict()  # type: Dict[Any, Any]
     mock_ddtrace.config.get_from.return_value = mock_tracing_config
 
     session = RequestSession(
@@ -55,6 +59,7 @@ def test_init(mocker, httpbin):
 
 
 def test_correct_user_agent(request_session):
+    # type: (Callable) -> None
     client = request_session(
         user_agent_components=UserAgentComponents(
             service_name="service_name",
@@ -68,6 +73,7 @@ def test_correct_user_agent(request_session):
 
 
 def test_user_agent_precedence(request_session):
+    # type: (Callable) -> None
     client = request_session(
         user_agent="hardcoded_user_agent",
         user_agent_components=UserAgentComponents(
@@ -116,6 +122,7 @@ def test_user_agent_precedence(request_session):
     ],
 )
 def test_incorrect_user_agent_components(request_session, user_agent_components):
+    # type: (Callable, Dict) -> None
     with pytest.raises(InvalidUserAgentString, match=USER_AGENT_ERROR_MSG):
         request_session(
             user_agent_components=UserAgentComponents(
@@ -129,6 +136,7 @@ def test_incorrect_user_agent_components(request_session, user_agent_components)
 
 
 def test_ddtrace_error(httpbin):
+    # type: (Httpbin) -> None
     with pytest.raises(APIError, match=DDTRACE_ERROR_MSG):
         RequestSession(
             host=httpbin.url,
@@ -138,18 +146,20 @@ def test_ddtrace_error(httpbin):
 
 
 def test_remove_session(request_session):
-    session = RequestSession()
+    # type: (Callable) -> None
+    session = RequestSession(host="https://kiwi.com")
     before = len(session.session_instances)
     session.remove_session()
     assert len(session.session_instances) == before - 1
 
 
-def test_close_all_sessions(request_session):
-    session = request_session()
+def test_close_all_sessions():
+    # type: () -> None
+    session = RequestSession(host="https://kiwi.com")
     session.prepare_new_session()
-    assert len(session.session_instances) >= 2
-    session.close_all_sessions()
-    assert not session.session_instances
+    assert len(RequestSession.session_instances) >= 2
+    RequestSession.close_all_sessions()
+    assert not RequestSession.session_instances
 
 
 @pytest.mark.parametrize(
@@ -163,6 +173,7 @@ def test_close_all_sessions(request_session):
     ],
 )
 def test_method(request_session, method, path, expected_status):
+    # type: (Callable, str, str, int) -> None
     """Test calling specific method."""
     session = request_session()  # type: RequestSession
     assert getattr(session, method)(path=path).status_code == expected_status
@@ -180,6 +191,7 @@ def test_method(request_session, method, path, expected_status):
     ],
 )
 def test_raise_for_status(mocker, httpbin, status_code, raises):
+    # type: (Mock, Httpbin, int, Exception) -> None
     """Test raising of an exception when rejected with 4xx."""
     session = RequestSession(host=httpbin.url, request_category=REQUEST_CATEGORY)
     mock_sys = mocker.patch("request_session.utils.sys", spec_set=sys)
@@ -216,9 +228,10 @@ def test_raise_for_status(mocker, httpbin, status_code, raises):
 def test_econnreset_error(
     httpbin, mocker, exceptions, max_retries, expected_call_count
 ):
+    # type: (Httpbin, Mock, Iterator[Exception], int, int) -> None
     used_sessions = []
 
-    def _prepare_new_session(self):
+    def _prepare_new_session(self):  # type: ignore
         self.session = mocker.Mock(spec=requests.Session)
         self.session_instances.append(self.session)
         self.session.request.side_effect = next(exceptions)
@@ -232,8 +245,8 @@ def test_econnreset_error(
     mock_exception_log_and_metrics = mocker.Mock(
         spec=RequestSession._exception_log_and_metrics
     )
-    client.log = mock_log
-    client._exception_log_and_metrics = mock_exception_log_and_metrics
+    client.log = mock_log  # type: ignore
+    client._exception_log_and_metrics = mock_exception_log_and_metrics  # type: ignore
 
     mocker.patch.object(
         RequestSession, "prepare_new_session", new=_prepare_new_session, spec_set=True
@@ -305,6 +318,7 @@ def test_econnreset_error(
     ],
 )
 def test_logging(mocker, request_session, inputs, expected):
+    # type: (Mock, Callable, Dict[str, Any], Dict[str, Any]) -> None
     mock_exception_log_and_metrics = mocker.Mock(
         spec_set=RequestSession._exception_log_and_metrics
     )
@@ -355,6 +369,7 @@ def test_logging(mocker, request_session, inputs, expected):
 def test_metric_increment(
     mocker, request_session, path, max_retries, status, error, call_count
 ):
+    # type: (Mock, Callable, str, int, str, Union[str, None], int) -> None
     """Test correct incrementing of metrics when call is performed."""
     mock_statsd = mocker.MagicMock(spec_set=Statsd)
     client = request_session(
@@ -388,12 +403,15 @@ def test_metric_increment(
     ],
 )
 def test_loggers(mocker, log_level, raises_exception):
+    # type: (Mock, str, bool) -> None
     mock_builtin_logger = mocker.patch(
         "request_session.request_session.builtin_logger", spec_set=True
     )
     mock_custom_logger = mocker.Mock()
-    client_custom_logger = RequestSession(logger=mock_custom_logger)
-    client_builtin_logger = RequestSession()
+    client_custom_logger = RequestSession(
+        host="https://kiwi.com", logger=mock_custom_logger
+    )
+    client_builtin_logger = RequestSession(host="https://kiwi.com")
 
     if raises_exception:
         with pytest.raises(APIError):
@@ -411,6 +429,7 @@ def test_loggers(mocker, log_level, raises_exception):
 
 
 def test_get_request_category(httpbin):
+    # type: (Httpbin) -> None
     client = RequestSession(host=httpbin.url)
 
     with pytest.raises(APIError, match="'request_category' is required parameter."):
@@ -437,12 +456,13 @@ def test_get_request_category(httpbin):
 def test_sleep_before_repeat(
     mocker, request_session, path, seconds, max_retries, tags, call_count
 ):
+    # type: (Mock, Callable, str, int, int, List[str], int) -> None
     mock_ddtrace = mocker.Mock(spec_set=Statsd)
     mock_sleep = mocker.Mock()
     client = request_session(
         max_retries=max_retries, ddtrace=mock_ddtrace, raise_for_status=False
     )  # type: RequestSession
-    client.sleep = mock_sleep
+    client.sleep = mock_sleep  # type: ignore
 
     client.get(path=path, sleep_before_repeat=seconds, tags=tags)
     assert mock_sleep.call_count == call_count
@@ -474,6 +494,7 @@ def test_sleep_before_repeat(
     ],
 )
 def test_send_request(request_session, mocker, inputs, expected):
+    # type: (Callable, Mock, Dict[str, Any], Dict[str, Any]) -> None
     mock_statsd = mocker.MagicMock(spec_set=Statsd)
     client = request_session(statsd=mock_statsd)  # type: RequestSession
     request_params = {
@@ -483,7 +504,7 @@ def test_send_request(request_session, mocker, inputs, expected):
         "params": None,
     }
 
-    response = client._send_request(
+    response = client._send_request(  # type: ignore
         inputs["request_type"],
         request_params,
         inputs["tags"],
@@ -500,6 +521,7 @@ def test_send_request(request_session, mocker, inputs, expected):
 
 
 def test_sleep(httpbin, mocker):
+    # type: (Httpbin, Mock) -> None
     seconds = 1
     tags = ["testing:sleep"]
     meta = {"request_category": REQUEST_CATEGORY, "testing": "sleep"}
@@ -641,15 +663,16 @@ def test_sleep(httpbin, mocker):
     ],
 )
 def test_exception_and_log_metrics(request_session, mocker, inputs, expected):
+    # type: (Callable, Mock, Dict[str, Any], Dict[str, Any]) -> None
     mock_log = mocker.Mock()
     mock_metric_increment = mocker.Mock()
     client = request_session(
         verbose_logging=inputs["verbose_logging"]
     )  # type: RequestSession
-    client.log = mock_log
-    client.metric_increment = mock_metric_increment
+    client.log = mock_log  # type: ignore
+    client.metric_increment = mock_metric_increment  # type: ignore
 
-    client._exception_log_and_metrics(
+    client._exception_log_and_metrics(  # type: ignore
         error=inputs["error"],
         request_category=client.request_category,
         request_params=inputs["request_params"],
@@ -674,6 +697,7 @@ def test_exception_and_log_metrics(request_session, mocker, inputs, expected):
 
 
 def test_get_response_text(mocker):
+    # type: (Mock) -> None
     mock_response = mocker.Mock(spec_set=requests.Response)
     mock_response.text = "response_text"
     assert RequestSession.get_response_text(mock_response) == "response_text"
@@ -681,6 +705,7 @@ def test_get_response_text(mocker):
 
 
 def test_reporting(request_session, mocker):
+    # type: (Callable, Mock) -> None
     """Test reporting of failure when rejected with 4xx."""
     mock_sentry_client = mocker.Mock(spec_set=SentryClient)
     session = request_session(raise_for_status=False, sentry_client=mock_sentry_client)
@@ -703,4 +728,5 @@ def test_reporting(request_session, mocker):
     ],
 )
 def test_is_server_error(exception, status_code, expected):
+    # type: (RequestException, Union[int, None], bool) -> None
     assert RequestSession.is_server_error(exception, status_code) == expected

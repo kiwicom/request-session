@@ -1,4 +1,8 @@
 """Just a conftest."""
+from typing import Any, Callable
+from unittest.mock import Mock
+
+import httpbin as Httpbin
 import pytest
 
 from request_session import RequestSession
@@ -6,8 +10,10 @@ from request_session import RequestSession
 
 @pytest.fixture(scope="function")
 def request_session(httpbin):
+    # type: (Httpbin) -> Callable
     def inner(*args, **kwargs):
-        return RequestSession(
+        # type: (*Any, **Any) -> RequestSession
+        return RequestSession(  # type: ignore
             *args, host=httpbin.url, request_category="test", **kwargs
         )
 
