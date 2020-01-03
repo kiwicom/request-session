@@ -4,8 +4,6 @@ import sys
 import time
 from typing import Any, Dict, Iterator, List, Optional, Text
 
-import attr
-
 from .protocols import Ddtrace
 
 DATEFMT = "%Y-%m-%d %H:%M.%S"
@@ -16,15 +14,16 @@ logging.basicConfig(format=FORMAT, datefmt=DATEFMT)
 logger = logging.getLogger()
 
 
-@attr.s
 class UserAgentComponents(object):
     """Helper class to wrap user-agent items into one object."""
 
-    service_name = attr.ib(validator=[attr.validators.instance_of(str)], type=str)
-    version = attr.ib(validator=[attr.validators.instance_of(str)], type=str)
-    organization = attr.ib(validator=[attr.validators.instance_of(str)], type=str)
-    environment = attr.ib(validator=[attr.validators.instance_of(str)], type=str)
-    sys_info = attr.ib(None, type=str)
+    def __init__(self, service_name, version, organization, environment, sys_info=None):
+        # type: (str, str, str, str, Optional[str]) -> None
+        self.service_name = service_name
+        self.version = version
+        self.organization = organization
+        self.environment = environment
+        self.sys_info = sys_info
 
 
 class InvalidUserAgentString(Exception):

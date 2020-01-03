@@ -2,7 +2,6 @@
 from abc import ABCMeta, abstractmethod
 from typing import Any, Dict, List, Optional
 
-import attr
 from six import add_metaclass
 
 
@@ -26,6 +25,7 @@ class SentryClient(object):
 
         ``kwargs`` are passed through to ``.capture``.
         """
+        raise NotImplementedError
 
 
 @add_metaclass(ABCMeta)
@@ -68,35 +68,41 @@ class Tracer(object):
             parent2 = tracer.trace('parent2')   # has no parent span
             parent2.finish()
         """
+        raise NotImplementedError
 
 
-@attr.s
 @add_metaclass(ABCMeta)
 class Span(object):
     """Span protocol."""
 
-    tracer = attr.ib(None, type=Tracer)
-    name = attr.ib(None, type=str)
-    service = attr.ib(None, type=str)
-    resource = attr.ib(None, type=str)
-    span_type = attr.ib(None, type=str)
-    trace_id = attr.ib(None, type=int)
-    parent_id = attr.ib(None, type=int)
-    span_id = attr.ib(None, type=int)
-    start = attr.ib(None, type=int)
-    context = attr.ib(None, type=object)
+    def __init__(
+        self,
+        tracer,  # type: Tracer
+        name,  # type: str
+        service,  # type: str
+        resource,  # type: str
+        span_type,  # type: str
+        trace_id,  # type: int
+        parent_id,  # type: int
+        span_id,  # type: int
+        start,  # type: int
+        context,  # type: object
+    ):
+        # type: (...) -> None
+        raise NotImplementedError
 
     def set_metas(self, kvs):
         # type: (Any) -> None
         """Set metas."""
+        raise NotImplementedError
 
     def __enter__(self):
         # type: () -> Span
-        pass
+        raise NotImplementedError
 
     def __exit__(self, *args, **kwargs):
         # type: (*Any, **Any) -> None
-        pass
+        raise NotImplementedError
 
 
 @add_metaclass(ABCMeta)
@@ -111,6 +117,7 @@ class Config(object):
         and if a wrong object is given, an empty `dict` is returned
         for safety reasons.
         """
+        raise NotImplementedError
 
 
 @add_metaclass(ABCMeta)
@@ -170,17 +177,14 @@ class Statsd(object):
 class TimedContextManagerDecorator(object):
     """TimedContextManagerDecorator protocol."""
 
-    statsd = attr.ib(None, type=Statsd)
-    metric = attr.ib(None, type=str)
-    tags = attr.ib(None, type=List[str])
-    sample_rate = attr.ib(None, type=int)
-    use_ms = attr.ib(None, type=bool)
-    elapsed = attr.ib(None, type=int)
+    def __init__(self, statsd, metric, tags, sample_rate, use_ms, elapsed):
+        # type: (Statsd, str, List[str], int, bool, int) -> None
+        raise NotImplementedError
 
     def __enter__(self):
         # type: () -> TimedContextManagerDecorator
-        pass
+        raise NotImplementedError
 
     def __exit__(self, type, value, traceback):  # pylint: disable=redefined-builtin
         # type: (Any, Any, Any) -> None
-        pass
+        raise NotImplementedError

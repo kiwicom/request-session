@@ -20,7 +20,6 @@ from .utils import reraise_as_third_party, split_tags_and_update, traced_sleep
 Timeout = namedtuple("Timeout", ["connection_timeout", "read_timeout"])
 
 
-@attr.s
 class RequestSession(object):
     """Helper class for HTTP requests with common settings.
 
@@ -61,34 +60,58 @@ class RequestSession(object):
         ``("debug", "info", "warning", "error", "critical", "exception", "log")``.
     """
 
-    host = attr.ib(None, type=str, converter=str)
-    headers = attr.ib(None, type=dict)
-    auth = attr.ib(None, type=tuple)
-    timeout = attr.ib(10, type=Union[float, Tuple[float, float], Timeout])
-    verify = attr.ib(True, type=Union[bool, str])
-    max_retries = attr.ib(0, type=int, validator=attr.validators.instance_of(int))
-    verbose_logging = attr.ib(False, type=bool)
-    request_category = attr.ib(None, type=str)
-    raise_for_status = attr.ib(
-        True, type=bool, validator=attr.validators.instance_of(bool)
-    )
-    user_agent = attr.ib(None, type=str)
-    user_agent_components = attr.ib(None, type=UserAgentComponents)
-    # session_intances is a class attribute
-    session_instances = attr.ib([], type=List[requests.Session])
-    ddtrace = attr.ib(None, type=Ddtrace)  # type: Ddtrace
-    datadog_service_name = attr.ib(None, type=str)
-    statsd = attr.ib(None, type=Statsd)  # type: Statsd
-    sentry_client = attr.ib(None, type=SentryClient)  # type: SentryClient
-    logger = attr.ib(None, type=Callable)
-    log_prefix = attr.ib("requestsession", type=str)
-    allowed_log_levels = attr.ib(
-        ("debug", "info", "warning", "error", "critical", "exception", "log"),
-        type=Tuple[str],
-    )
+    session_instances = []  # type: List[requests.Session]
 
-    def __attrs_post_init__(self):
-        # type: () -> None
+    def __init__(
+        self,
+        host=None,  # type: str
+        auth=None,  # type: Optional[Tuple]
+        timeout=10,  # type: Union[float, Tuple[float, float], Timeout]
+        verify=True,  # type: Union[bool, str]
+        max_retries=0,  # type: int
+        verbose_logging=False,  # type: bool
+        headers=None,  # type: Optional[Dict]
+        request_category=None,  # type: Optional[str]
+        raise_for_status=True,  # type: bool
+        user_agent=None,  # type: Optional[str]
+        user_agent_components=None,  # type: Optional[UserAgentComponents]
+        ddtrace=None,  # type: Optional[Ddtrace]
+        datadog_service_name=None,  # type: Optional[str]
+        statsd=None,  # type: Optional[Statsd]
+        sentry_client=None,  # type: Optional[SentryClient]
+        logger=None,  # type: Optional[Callable]
+        log_prefix="requestsession",  # type: str
+        allowed_log_levels=(
+            "debug",
+            "info",
+            "warning",
+            "error",
+            "critical",
+            "exception",
+            "log",
+        ),  # type: Tuple
+    ):
+        if host is None:
+            raise APIError("`host` is a required parameter.")
+        self.host = host
+        self.auth = auth
+        self.timeout = timeout
+        self.verify = verify
+        self.max_retries = max_retries
+        self.verbose_logging = verbose_logging
+        self.headers = headers
+        self.request_category = request_category
+        self.raise_for_status = raise_for_status
+        self.user_agent = user_agent
+        self.user_agent_components = user_agent_components
+        self.ddtrace = ddtrace
+        self.datadog_service_name = datadog_service_name
+        self.statsd = statsd
+        self.sentry_client = sentry_client
+        self.logger = logger
+        self.log_prefix = log_prefix
+        self.allowed_log_levels = allowed_log_levels
+
         self.prepare_new_session()
 
     def prepare_new_session(self):
@@ -132,12 +155,12 @@ class RequestSession(object):
         """Set proper user-agent string to header according to RFC22."""
         pattern = r"^(?P<service_name>\S.+?)\/(?P<version>\S.+?) \((?P<organization>\S.+?) (?P<environment>\S.+?)\)(?: ?(?P<sys_info>.*))$"
         string = "{service_name}/{version} ({organization} {environment}) {sys_info}".format(
-            service_name=self.user_agent_components.service_name,
-            version=self.user_agent_components.version,
-            organization=self.user_agent_components.organization,
-            environment=self.user_agent_components.environment,
-            sys_info=self.user_agent_components.sys_info
-            if self.user_agent_components.sys_info
+            service_name=self.user_agent_components.service_name,  # type: ignore
+            version=self.user_agent_components.version,  # type: ignore
+            organization=self.user_agent_components.organization,  # type: ignore
+            environment=self.user_agent_components.environment,  # type: ignore
+            sys_info=self.user_agent_components.sys_info  # type: ignore
+            if self.user_agent_components.sys_info  # type: ignore
             else "",
         ).strip()
         if not re.match(pattern, string):
@@ -145,12 +168,13 @@ class RequestSession(object):
         self.user_agent = string
         self.session.headers.update({"User-Agent": string})
 
-    def close_all_sessions(self):
+    @classmethod
+    def close_all_sessions(cls):
         # type: () -> None
-        """Close and remove all sessions in self.session_instances."""
-        for session in self.session_instances:
+        """Close and remove all sessions in cls.session_instances."""
+        for session in cls.session_instances:
             session.close()
-        self.session_instances = []
+        cls.session_instances = []
 
     def delete(self, path, **kwargs):
         # type: (str, Any) -> Optional[requests.Response]
@@ -453,7 +477,7 @@ class RequestSession(object):
         trace_name = request_category.replace(".", "_") + "_retry"
         meta = {"request_category": request_category}
         split_tags_and_update(meta, tags)
-        traced_sleep(trace_name, seconds, self.ddtrace, meta)
+        traced_sleep(trace_name, seconds, self.ddtrace, meta)  # type: ignore
 
     def metric_increment(self, metric, request_category, tags, attempt=None):
         # type: (str, str, list, Optional[int]) -> None
