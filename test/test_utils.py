@@ -1,7 +1,6 @@
 """Test the utilities."""
 import sys
 from typing import Dict, List
-from unittest.mock import Mock
 
 import pytest
 
@@ -12,6 +11,8 @@ from request_session.utils import (
     split_tags_and_update,
     traced_sleep,
 )
+
+from ._compat import Mock
 
 
 def test_reraise_as_third_party(mocker):

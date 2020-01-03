@@ -1,11 +1,12 @@
 """Just a conftest."""
 from typing import Any, Callable
-from unittest.mock import Mock
 
 import httpbin as Httpbin
 import pytest
 
 from request_session import RequestSession
+
+from ._compat import Mock
 
 
 @pytest.fixture(scope="function")

@@ -2,7 +2,6 @@
 import itertools
 import sys
 from typing import Any, Callable, Dict, Iterator, List, Union
-from unittest.mock import Mock
 
 import httpbin as Httpbin
 import pytest
@@ -18,6 +17,8 @@ from request_session import (
     UserAgentComponents,
 )
 from request_session.protocols import Ddtrace, SentryClient, Statsd
+
+from ._compat import Mock
 
 REQUEST_CATEGORY = "test"  # this request category must match the one in conftest
 INTERNAL_ERROR_MSG = (
