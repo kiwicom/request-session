@@ -442,7 +442,17 @@ class RequestSession(object):
             return self.session.request(method=request_type, **request_params)
 
         with self.statsd.timed(metric_name, use_ms=True, tags=tags):
-            response = self.session.request(method=request_type, **request_params)
+            if self.ddtrace:
+                with self.ddtrace.tracer.trace(
+                    "api.request",
+                    service="booking_api_requests",
+                    resource=request_category,
+                ):
+                    response = self.session.request(
+                        method=request_type, **request_params
+                    )
+            else:
+                response = self.session.request(method=request_type, **request_params)
         return response
 
     def _log_with_params(self, request_params, response, tags, request_category):
