@@ -92,8 +92,6 @@ class RequestSession(object):
         ),  # type: Tuple
     ):
         # type: (...) -> None
-        if host is None:
-            raise APIError("`host` is a required parameter.")
         self.host = host
         self.auth = auth
         self.timeout = timeout
