@@ -44,7 +44,6 @@ def test_init(mocker, httpbin):
         request_category=REQUEST_CATEGORY,
         max_retries=3,
         user_agent="UserAgent",
-        datadog_service_name="datadog_service",
         ddtrace=mock_ddtrace,
         headers={},
         auth=("user", "passwd"),
@@ -53,10 +52,8 @@ def test_init(mocker, httpbin):
     assert session.request_category == REQUEST_CATEGORY
     assert session.max_retries == 3
     assert session.user_agent == "UserAgent"
-    assert session.datadog_service_name == "datadog_service"
     assert session.headers == {}
     assert session.auth == ("user", "passwd")
-    assert mock_tracing_config["service_name"] == session.datadog_service_name
 
 
 def test_correct_user_agent(request_session):
@@ -133,16 +130,6 @@ def test_incorrect_user_agent_components(request_session, user_agent_components)
                 environment=user_agent_components["env"],
                 sys_info=user_agent_components["sys_info"],
             )
-        )
-
-
-def test_ddtrace_error(httpbin):
-    # type: (Httpbin) -> None
-    with pytest.raises(APIError, match=DDTRACE_ERROR_MSG):
-        RequestSession(
-            host=httpbin.url,
-            request_category=REQUEST_CATEGORY,
-            datadog_service_name="datadog_service",
         )
 
 

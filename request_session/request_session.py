@@ -46,9 +46,7 @@ class RequestSession(object):
     :param list[requests.Session] session_instances: (optional) A list of
         ``requests.Session`` to be used to make the HTTP requests.
     :param Ddtrace ddtrace: (optional) DataDog function to be used to trace, track and
-        send metrics for individual HTTP requests. If set, ``datadog_service_name``
-        must be set too. Defaults to ``None``.
-    :param str datadog_service_name: (optional) Name of the service in DataDog.
+        send metrics for individual HTTP requests.
     :param Statsd statsd: (optional) Datadog module to log metrics.
     :param SentryClient sentry_client: (optional) Sentry module to log exceptions.
     :param Callable logger: (optional) Logger to be used when logging to `stdout`
@@ -76,7 +74,6 @@ class RequestSession(object):
         user_agent=None,  # type: Optional[str]
         user_agent_components=None,  # type: Optional[UserAgentComponents]
         ddtrace=None,  # type: Optional[Ddtrace]
-        datadog_service_name=None,  # type: Optional[str]
         statsd=None,  # type: Optional[Statsd]
         sentry_client=None,  # type: Optional[SentryClient]
         logger=None,  # type: Optional[Callable]
@@ -104,7 +101,6 @@ class RequestSession(object):
         self.user_agent = user_agent
         self.user_agent_components = user_agent_components
         self.ddtrace = ddtrace
-        self.datadog_service_name = datadog_service_name
         self.statsd = statsd
         self.sentry_client = sentry_client
         self.logger = logger
@@ -127,14 +123,6 @@ class RequestSession(object):
             self.session.headers.update({"User-Agent": self.user_agent})
         elif self.user_agent_components is not None:
             self.set_user_agent()
-
-        if self.datadog_service_name is not None:
-            if not self.ddtrace or (self.ddtrace and not self.ddtrace.config):
-                raise APIError(
-                    "Ddtrace must be provided in order to report to datadog service."
-                )
-            tracing_config = self.ddtrace.config.get_from(self.session)
-            tracing_config["service_name"] = self.datadog_service_name
 
         if self.headers is not None:
             self.session.headers.update(self.headers)
