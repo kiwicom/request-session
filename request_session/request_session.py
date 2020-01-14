@@ -326,7 +326,12 @@ class RequestSession(object):
                 )
 
                 self._log_with_params(
-                    request_params, response, success_tags, request_category
+                    request_params,
+                    response,
+                    success_tags,
+                    request_category,
+                    attempt=run,
+                    url=url,
                 )
 
             except requests.RequestException as error:
@@ -441,8 +446,10 @@ class RequestSession(object):
                 response = self.session.request(method=request_type, **request_params)
         return response
 
-    def _log_with_params(self, request_params, response, tags, request_category):
-        # type: (Dict, requests.Response, List[str], str) -> None
+    def _log_with_params(
+        self, request_params, response, tags, request_category, attempt, url
+    ):
+        # type: (Dict, requests.Response, List[str], str, int, str) -> None
         """Prepare parameters and log response.
 
         :param Dict request_params: Parameters used in the request.
@@ -460,7 +467,12 @@ class RequestSession(object):
         )
         split_tags_and_update(extra_params, tags)
         self.log(
-            "info", request_category, status_code=response.status_code, **extra_params
+            "info",
+            request_category,
+            status_code=response.status_code,
+            attempt=attempt,
+            url=url,
+            **extra_params
         )
 
     def sleep(self, seconds, request_category, tags):
