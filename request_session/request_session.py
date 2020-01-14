@@ -178,7 +178,7 @@ class RequestSession(object):
             (if raise_for_status is True).
         :raises APIError: client error on operation (if raise_for_status is True)
         """
-        url = urljoin(self.host, path)
+        url = urljoin(self.host, path) if self.host else path
         return self._process("delete", url, **kwargs)
 
     def get(self, path, **kwargs):
@@ -196,7 +196,7 @@ class RequestSession(object):
             (if raise_for_status is True).
         :raises APIError: client error on operation (if raise_for_status is True)
         """
-        url = urljoin(self.host, path)
+        url = urljoin(self.host, path) if self.host else path
         return self._process("get", url, **kwargs)
 
     def post(self, path, **kwargs):
@@ -214,7 +214,7 @@ class RequestSession(object):
             (if raise_for_status is True).
         :raises APIError: Client error on operation (if raise_for_status is True).
         """
-        url = urljoin(self.host, path)
+        url = urljoin(self.host, path) if self.host else path
         return self._process("post", url, **kwargs)
 
     def put(self, path, **kwargs):
@@ -232,7 +232,7 @@ class RequestSession(object):
             (if raise_for_status is True).
         :raises APIError: client error on operation (if raise_for_status is True)
         """
-        url = urljoin(self.host, path)
+        url = urljoin(self.host, path) if self.host else path
         return self._process("put", url, **kwargs)
 
     def patch(self, path, **kwargs):
@@ -250,7 +250,7 @@ class RequestSession(object):
             (if raise_for_status is True).
         :raises APIError: client error on operation (if raise_for_status is True)
         """
-        url = urljoin(self.host, path)
+        url = urljoin(self.host, path) if self.host else path
         return self._process("patch", url, **kwargs)
 
     def _process(
