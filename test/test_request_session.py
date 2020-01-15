@@ -9,11 +9,11 @@ import requests
 import simplejson as json
 
 from request_session import (
-    APIError,
     HTTPError,
     InvalidUserAgentString,
     RequestException,
     RequestSession,
+    RequestSessionException,
     UserAgentComponents,
 )
 from request_session.protocols import Ddtrace, SentryClient, Statsd
@@ -171,8 +171,8 @@ def test_method(request_session, method, path, expected_status):
     "status_code, raises",
     [
         (200, None),
-        (404, APIError),
-        (409, APIError),
+        (404, RequestSessionException),
+        (409, RequestSessionException),
         (500, HTTPError),
         (503, HTTPError),
         (505, HTTPError),
@@ -402,7 +402,7 @@ def test_loggers(mocker, log_level, raises_exception):
     client_builtin_logger = RequestSession(host="https://kiwi.com")
 
     if raises_exception:
-        with pytest.raises(APIError):
+        with pytest.raises(AttributeError):
             client_custom_logger.log(log_level, REQUEST_CATEGORY)
             client_builtin_logger.log(log_level, REQUEST_CATEGORY)
     else:
@@ -420,7 +420,9 @@ def test_get_request_category(httpbin):
     # type: (Httpbin) -> None
     client = RequestSession(host=httpbin.url)
 
-    with pytest.raises(APIError, match="'request_category' is required parameter."):
+    with pytest.raises(
+        AttributeError, match="`request_category` is required parameter."
+    ):
         client._get_request_category()
 
     assert (

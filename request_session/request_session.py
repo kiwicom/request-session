@@ -13,7 +13,12 @@ import simplejson as json
 
 from ._compat import urljoin
 from .protocols import Ddtrace, SentryClient, Statsd
-from .utils import APIError, InvalidUserAgentString, UserAgentComponents, dict_to_string
+from .utils import (
+    InvalidUserAgentString,
+    RequestSessionException,
+    UserAgentComponents,
+    dict_to_string,
+)
 from .utils import logger as builtin_logger
 from .utils import reraise_as_third_party, split_tags_and_update, traced_sleep
 
@@ -174,9 +179,9 @@ class RequestSession(object):
 
         :return requests.Response: HTTP Response Object
 
-        :raises requests.RequestException: server error on operation
+        :raises requests.RequestException: Server error on operation
             (if raise_for_status is True).
-        :raises APIError: client error on operation (if raise_for_status is True)
+        :raises RequestSessionException: Client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path) if self.host else path
         return self._process("delete", url, **kwargs)
@@ -192,9 +197,9 @@ class RequestSession(object):
 
         :return requests.Response: HTTP Response Object
 
-        :raises requests.RequestException: server error on operation
+        :raises requests.RequestException: Server error on operation
             (if raise_for_status is True).
-        :raises APIError: client error on operation (if raise_for_status is True)
+        :raises RequestSessionException: Client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path) if self.host else path
         return self._process("get", url, **kwargs)
@@ -212,7 +217,7 @@ class RequestSession(object):
 
         :raises requests.RequestException: Server error on operation
             (if raise_for_status is True).
-        :raises APIError: Client error on operation (if raise_for_status is True).
+        :raises RequestSessionException: Client error on operation (if raise_for_status is True).
         """
         url = urljoin(self.host, path) if self.host else path
         return self._process("post", url, **kwargs)
@@ -228,9 +233,9 @@ class RequestSession(object):
 
         :return requests.Response: HTTP Response Object
 
-        :raises requests.RequestException: server error on operation
+        :raises requests.RequestException: Server error on operation
             (if raise_for_status is True).
-        :raises APIError: client error on operation (if raise_for_status is True)
+        :raises RequestSessionException: Client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path) if self.host else path
         return self._process("put", url, **kwargs)
@@ -246,9 +251,9 @@ class RequestSession(object):
 
         :return requests.Response: HTTP Response Object
 
-        :raises requests.RequestException: server error on operation
+        :raises requests.RequestException: Server error on operation
             (if raise_for_status is True).
-        :raises APIError: client error on operation (if raise_for_status is True)
+        :raises RequestSessionException: Client error on operation (if raise_for_status is True)
         """
         url = urljoin(self.host, path) if self.host else path
         return self._process("patch", url, **kwargs)
@@ -284,7 +289,7 @@ class RequestSession(object):
 
         :raises requests.RequestException: Server error on operation.
             (if raise_for_status is True).
-        :raises APIError: Client error on operation (if raise_for_status is True).
+        :raises RequestSessionException: Client error on operation (if raise_for_status is True).
         """
         tags = [] if not tags else tags
 
@@ -400,7 +405,7 @@ class RequestSession(object):
                         self.sentry_client.captureException(extra=extra_data)
 
                     if raise_for_status:
-                        raise APIError(str(error), original_exc=error)
+                        raise RequestSessionException(str(error), original_exc=error)
                     return response
 
                 if sleep_before_repeat:
@@ -517,7 +522,7 @@ class RequestSession(object):
         :param \*\*kwargs: kw arguments to be logged
         """
         if not level in self.allowed_log_levels:
-            raise APIError("Provided log level is not allowed.")
+            raise AttributeError("Provided log level is not allowed.")
         event_name = "{prefix}.{event}".format(prefix=self.log_prefix, event=event)
         if self.logger is not None:
             getattr(self.logger, level)(event_name, **kwargs)
@@ -622,10 +627,10 @@ class RequestSession(object):
             Defaults to `None`.
         :return: Request category
 
-        :raises APIError: Raised when `request_category` was not provided.
+        :raises RequestSessionException: Raised when `request_category` was not provided.
         """
         request_category = request_category or self.request_category
         if request_category is None:
-            raise APIError("'request_category' is required parameter.")
+            raise AttributeError("`request_category` is required parameter.")
 
         return request_category

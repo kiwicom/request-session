@@ -6,8 +6,6 @@ import pytest
 
 from request_session import RequestSession
 
-from ._compat import Mock
-
 
 @pytest.fixture(scope="function")
 def request_session(httpbin):

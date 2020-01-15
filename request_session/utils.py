@@ -30,17 +30,12 @@ class InvalidUserAgentString(Exception):
     """Provided user agent string is not in correct format."""
 
 
-class APIError(Exception):
+class RequestSessionException(Exception):
     """Base error for API mishandling."""
-
-    default_message = "API error occured."
 
     def __init__(self, *args, **kwargs):
         # type: (*Any, **Any) -> None
-        if not args:
-            args = (self.default_message,)
         self.original_exc = kwargs.get("original_exc")
-
         Exception.__init__(self, *args)
 
 
