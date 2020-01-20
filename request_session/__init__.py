@@ -1,4 +1,5 @@
-from requests import HTTPError, RequestException
+from requests import Response
 
+from . import exceptions
 from .request_session import RequestSession, Timeout
-from .utils import InvalidUserAgentString, RequestSessionException, UserAgentComponents
+from .utils import UserAgentComponents

@@ -26,19 +26,6 @@ class UserAgentComponents(object):
         self.sys_info = sys_info
 
 
-class InvalidUserAgentString(Exception):
-    """Provided user agent string is not in correct format."""
-
-
-class RequestSessionException(Exception):
-    """Base error for API mishandling."""
-
-    def __init__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> None
-        self.original_exc = kwargs.get("original_exc")
-        Exception.__init__(self, *args)
-
-
 def reraise_as_third_party():
     # type: () -> None
     """Add tags to raised exception for Sentry."""

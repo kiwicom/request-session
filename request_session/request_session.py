@@ -12,13 +12,9 @@ import requests.adapters
 import simplejson as json
 
 from ._compat import urljoin
+from .exceptions import InvalidUserAgentString, RequestSessionException
 from .protocols import Ddtrace, SentryClient, Statsd
-from .utils import (
-    InvalidUserAgentString,
-    RequestSessionException,
-    UserAgentComponents,
-    dict_to_string,
-)
+from .utils import UserAgentComponents, dict_to_string
 from .utils import logger as builtin_logger
 from .utils import reraise_as_third_party, split_tags_and_update, traced_sleep
 

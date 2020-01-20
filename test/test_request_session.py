@@ -8,13 +8,12 @@ import pytest
 import requests
 import simplejson as json
 
-from request_session import (
+from request_session import RequestSession, UserAgentComponents
+from request_session.exceptions import (
     HTTPError,
     InvalidUserAgentString,
     RequestException,
-    RequestSession,
     RequestSessionException,
-    UserAgentComponents,
 )
 from request_session.protocols import Ddtrace, SentryClient, Statsd
 
