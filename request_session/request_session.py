@@ -14,9 +14,13 @@ import simplejson as json
 from ._compat import urljoin
 from .exceptions import InvalidUserAgentString, RequestSessionException
 from .protocols import Ddtrace, SentryClient, Statsd
-from .utils import UserAgentComponents, dict_to_string
-from .utils import logger as builtin_logger
-from .utils import reraise_as_third_party, split_tags_and_update, traced_sleep
+from .utils import (
+    UserAgentComponents,
+    dict_to_string,
+    reraise_as_third_party,
+    split_tags_and_update,
+    traced_sleep,
+)
 
 Timeout = namedtuple("Timeout", ["connection_timeout", "read_timeout"])
 
@@ -522,10 +526,6 @@ class RequestSession(object):
         event_name = "{prefix}.{event}".format(prefix=self.log_prefix, event=event)
         if self.logger is not None:
             getattr(self.logger, level)(event_name, **kwargs)
-        else:
-            getattr(builtin_logger, level)(
-                event_name, extra={"tags": dict_to_string(kwargs)}
-            )
 
     def _exception_log_and_metrics(
         self,

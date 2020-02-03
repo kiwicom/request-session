@@ -376,45 +376,6 @@ def test_metric_increment(
     mock_statsd.increment.assert_has_calls(calls)
 
 
-@pytest.mark.parametrize(
-    "log_level, raises_exception",
-    [
-        ("debug", False),
-        ("info", False),
-        ("warning", False),
-        ("error", False),
-        ("critical", False),
-        ("exception", False),
-        ("log", False),
-        ("undefined_log_level", True),
-    ],
-)
-def test_loggers(mocker, log_level, raises_exception):
-    # type: (Mock, str, bool) -> None
-    mock_builtin_logger = mocker.patch(
-        "request_session.request_session.builtin_logger", spec_set=True
-    )
-    mock_custom_logger = mocker.Mock()
-    client_custom_logger = RequestSession(
-        host="https://kiwi.com", logger=mock_custom_logger
-    )
-    client_builtin_logger = RequestSession(host="https://kiwi.com")
-
-    if raises_exception:
-        with pytest.raises(AttributeError):
-            client_custom_logger.log(log_level, REQUEST_CATEGORY)
-            client_builtin_logger.log(log_level, REQUEST_CATEGORY)
-    else:
-        client_custom_logger.log(log_level, REQUEST_CATEGORY)
-        client_builtin_logger.log(log_level, REQUEST_CATEGORY)
-        getattr(mock_custom_logger, log_level).assert_called_once_with(
-            "requestsession.{}".format(REQUEST_CATEGORY)
-        )
-        getattr(mock_builtin_logger, log_level).assert_called_once_with(
-            "requestsession.{}".format(REQUEST_CATEGORY), extra={"tags": ""}
-        )
-
-
 def test_get_request_category(httpbin):
     # type: (Httpbin) -> None
     client = RequestSession(host=httpbin.url)

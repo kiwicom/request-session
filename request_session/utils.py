@@ -6,13 +6,6 @@ from typing import Any, Dict, Iterator, List, Optional, Text
 
 from .protocols import Ddtrace
 
-DATEFMT = "%Y-%m-%d %H:%M.%S"
-FORMAT = "%(asctime)s %(message)s\t  %(tags)s "
-
-
-logging.basicConfig(format=FORMAT, datefmt=DATEFMT)
-logger = logging.getLogger()
-
 
 class UserAgentComponents(object):
     """Helper class to wrap user-agent items into one object."""
