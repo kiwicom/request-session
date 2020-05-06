@@ -367,10 +367,10 @@ def test_metric_increment(
     calls = []
     for attempt in range(1, call_count + 1):
         metric = "{}.{}".format(client._get_request_category(), "request")
-        tags = ["status:{}".format(status), "attempt:{}".format(attempt)]
+        tags = ["status:{}".format(status)]
         if error:
             tags.append("error:{}".format(error))
-        calls.append(mocker.call(metric, tags=tags))
+        calls.append(mocker.call(metric, tags=tags + ["attempt:{}".format(attempt)]))
 
     assert mock_statsd.increment.call_count == call_count
     mock_statsd.increment.assert_has_calls(calls)
@@ -500,12 +500,12 @@ def test_sleep(httpbin, mocker):
                 "status_code": 408,
             },
             {
-                "tags": ["status:error", "attempt:1", "error:timeout"],
+                "tags": ["status:error", "error:timeout", "attempt:1"],
                 "extra_params": {
                     "description": "Timeout",
                     "response_text": "",
                     "status": "error",
-                    "attempt": "1",
+                    "attempt": 1,
                 },
                 "error_type": "read_timeout",
             },
@@ -520,12 +520,12 @@ def test_sleep(httpbin, mocker):
                 "status_code": 400,
             },
             {
-                "tags": ["status:error", "attempt:1", "error:http_error"],
+                "tags": ["status:error", "error:http_error", "attempt:1"],
                 "extra_params": {
                     "description": "HTTPError",
                     "response_text": "",
                     "status": "error",
-                    "attempt": "1",
+                    "attempt": 1,
                 },
                 "error_type": "http_error",
             },
@@ -540,12 +540,12 @@ def test_sleep(httpbin, mocker):
                 "status_code": 444,
             },
             {
-                "tags": ["status:error", "attempt:1", "error:connection_error"],
+                "tags": ["status:error", "error:connection_error", "attempt:1"],
                 "extra_params": {
                     "description": "ConnectionError",
                     "response_text": "",
                     "status": "error",
-                    "attempt": "1",
+                    "attempt": 1,
                 },
                 "error_type": "connection_error",
             },
@@ -560,12 +560,12 @@ def test_sleep(httpbin, mocker):
                 "status_code": None,
             },
             {
-                "tags": ["status:error", "attempt:1", "error:request_exception"],
+                "tags": ["status:error", "error:request_exception", "attempt:1"],
                 "extra_params": {
                     "description": "URLRequired",
                     "response_text": "",
                     "status": "error",
-                    "attempt": "1",
+                    "attempt": 1,
                 },
                 "error_type": "request_exception",
             },
@@ -580,32 +580,13 @@ def test_sleep(httpbin, mocker):
                 "status_code": 408,
             },
             {
-                "tags": ["status:error", "attempt:1", "custom:tags", "error:timeout"],
+                "tags": ["status:error", "custom:tags", "error:timeout", "attempt:1"],
                 "extra_params": {
                     "description": "Timeout",
                     "response_text": "",
                     "status": "error",
-                    "attempt": "1",
+                    "attempt": 1,
                     "custom": "tags",
-                },
-                "error_type": "read_timeout",
-            },
-        ),
-        (
-            {  # attempt is not specified
-                "error": requests.exceptions.Timeout("Timeout"),
-                "attempt": None,
-                "tags": [],
-                "request_params": {},
-                "verbose_logging": False,
-                "status_code": 408,
-            },
-            {
-                "tags": ["status:error", "error:timeout"],
-                "extra_params": {
-                    "description": "Timeout",
-                    "response_text": "",
-                    "status": "error",
                 },
                 "error_type": "read_timeout",
             },

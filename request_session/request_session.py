@@ -534,7 +534,7 @@ class RequestSession(object):
         request_params,  # type: Dict
         dd_tags,  # type: List[str]
         status_code,  # type: Union[int, None]
-        attempt=None,  # type: Optional[int]
+        attempt,  # type: int
     ):
         # type: (...) -> None
         """Assign appropriate metric and log for exception.
@@ -545,11 +545,8 @@ class RequestSession(object):
         :param List[str] dd_tags: Tags to increment metric with.
         :param Union[int, None] Status_code: HTTP status code of the response.
         """
-        tags = (
-            ["status:error", "attempt:{}".format(attempt)]
-            if attempt
-            else ["status:error"]
-        )
+        tags = ["status:error"]
+
         tags.extend(dd_tags)
         response_text = self.get_response_text(error.response)
         extra_params = {"description": str(error), "response_text": response_text}
@@ -578,11 +575,14 @@ class RequestSession(object):
             "{}.failed".format(request_category),
             error_type=error_type,
             status_code=status_code,
+            attempt=attempt,
             **extra_params
         )
 
         self.metric_increment(
-            metric="request", request_category=request_category, tags=tags
+            metric="request",
+            request_category=request_category,
+            tags=tags + ["attempt:{}".format(attempt)],
         )
 
     @staticmethod
