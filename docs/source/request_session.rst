@@ -61,6 +61,16 @@ methods as a keyword argument:
 * cert: (*optional*) If it is a ``String``, path to ssl client cert file (.pem).
   If it is a ``Tuple``, ('cert', 'key') pair.
 
+
+exceptions
+---------------------------------
+
+.. automodule:: request_session.exceptions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
 protocols
 ---------------------------------
 
