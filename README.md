@@ -51,10 +51,6 @@ outcome of the request (a DataDog integration is needed).
 You can find more details about `RequestSession`'s benefits and examples in
 [the official documentation](https://readthedocs.com).
 
-## Contributing
-
-Create a merge request and assign it to Josef Podaný for review.
-
 ## How to run test
 
 To run all tests you just need to run the command `tox`.
