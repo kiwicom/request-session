@@ -1,0 +1,258 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Automatic Retries &mdash; request_session  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Logging" href="logging.html" />
+    <link rel="prev" title="Introduction" href="intro.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> request_session
+          
+
+          
+            
+            <img src="_static/logo.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Automatic Retries</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="request_session.html">request_session package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how_to_contribute.html">How to Contribute</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">request_session</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Automatic Retries</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/retry.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="automatic-retries">
+<h1>Automatic Retries<a class="headerlink" href="#automatic-retries" title="Permalink to this headline">¶</a></h1>
+<p>It is possible to configure a retry in case of request failure.
+The number of retries is set to 0 by default.
+You can set the number of retries for all requests trough the object’s attribute
+<code class="docutils literal notranslate"><span class="pre">max_retries</span></code> or you can pass the number as an optional parameter
+<code class="docutils literal notranslate"><span class="pre">max_retries</span></code>. When calling an HTTP method.
+The value passed trough method call has precedence.
+The parameter is the number of retries on failure, not a maximum number of attempts.
+E.g. if retry is set to 2 and there is no success on any attempt,
+the total number of requests will be 3: nominal request and 2 retries on
+failure.</p>
+<p>Important note: the request  is not retried in case of client error,
+that is if the server responded with HTTP 4xx,
+not including HTTP 408 Request Timeout</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">sleep_before_repeat</span></code> parameter is passed,
+the method waits for that amount of seconds before retrying.</p>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">request_session</span> <span class="kn">import</span> <span class="n">RequestSession</span>
+<span class="kn">import</span> <span class="nn">structlog</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">structlog</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">RequestSession</span><span class="p">(</span>
+    <span class="n">host</span><span class="o">=</span><span class="s2">&quot;http://httpbin.org/&quot;</span><span class="p">,</span> <span class="c1"># to showcase the usage, we&#39;re going to call httpbin</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;demo&quot;</span><span class="p">,</span>              <span class="c1"># name of the app</span>
+    <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>              <span class="c1"># log information using structlog</span>
+<span class="p">)</span>
+
+<span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+    <span class="s2">&quot;/status/500&quot;</span><span class="p">,</span>              <span class="c1"># all requests should fail with 500</span>
+    <span class="n">sleep_before_repeat</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>      <span class="c1"># wait 1 second before retrying</span>
+    <span class="n">max_retries</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>              <span class="c1"># if failed, retry twice</span>
+    <span class="n">request_category</span><span class="o">=</span><span class="s2">&quot;httpbin&quot;</span><span class="p">)</span> <span class="c1"># use &quot;httpbin&quot; when logging</span>
+</pre></div>
+</div>
+<p>This setup generates the following logs:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="m">2019</span>-11-15 <span class="m">08</span>:52.25 demo.httpbin.failed             <span class="nv">attempt</span><span class="o">=</span><span class="m">1</span> <span class="nv">description</span><span class="o">=</span><span class="m">500</span> Server Error: INTERNAL SERVER ERROR <span class="k">for</span> url: http://httpbin.org/status/500 <span class="nv">error_type</span><span class="o">=</span>http_error <span class="nv">response_text</span><span class="o">=</span> <span class="nv">status</span><span class="o">=</span>error <span class="nv">status_code</span><span class="o">=</span><span class="m">500</span>
+<span class="m">2019</span>-11-15 <span class="m">08</span>:52.26 demo.httpbin.failed             <span class="nv">attempt</span><span class="o">=</span><span class="m">2</span> <span class="nv">description</span><span class="o">=</span><span class="m">500</span> Server Error: INTERNAL SERVER ERROR <span class="k">for</span> url: http://httpbin.org/status/500 <span class="nv">error_type</span><span class="o">=</span>http_error <span class="nv">response_text</span><span class="o">=</span> <span class="nv">status</span><span class="o">=</span>error <span class="nv">status_code</span><span class="o">=</span><span class="m">500</span>
+<span class="m">2019</span>-11-15 <span class="m">08</span>:52.27 demo.httpbin.failed             <span class="nv">attempt</span><span class="o">=</span><span class="m">3</span> <span class="nv">description</span><span class="o">=</span><span class="m">500</span> Server Error: INTERNAL SERVER ERROR <span class="k">for</span> url: http://httpbin.org/status/500 <span class="nv">error_type</span><span class="o">=</span>http_error <span class="nv">response_text</span><span class="o">=</span> <span class="nv">status</span><span class="o">=</span>error <span class="nv">status_code</span><span class="o">=</span><span class="m">500</span>
+</pre></div>
+</div>
+<p>From the logs, we can see that 3 requests have been made in total
+(initial one and 2 retries),
+from which all of them have failed.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="logging.html" class="btn btn-neutral float-right" title="Logging" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="intro.html" class="btn btn-neutral float-left" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Booking Backend
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

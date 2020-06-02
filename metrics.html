@@ -1,0 +1,287 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Metrics &mdash; request_session  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="request_session package" href="request_session.html" />
+    <link rel="prev" title="Logging" href="logging.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> request_session
+          
+
+          
+            
+            <img src="_static/logo.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="retry.html">Automatic Retries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Metrics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#example-of-sending-metrics">Example of Sending Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="request_session.html">request_session package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how_to_contribute.html">How to Contribute</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">request_session</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Metrics</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/metrics.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="metrics">
+<h1>Metrics<a class="headerlink" href="#metrics" title="Permalink to this headline">¶</a></h1>
+<p>In order to use this feature, you must have DataDog integration set up.</p>
+<p>Everytime you call <code class="docutils literal notranslate"><span class="pre">POST</span></code>, <code class="docutils literal notranslate"><span class="pre">GET</span></code>, <code class="docutils literal notranslate"><span class="pre">PUT</span></code> or <code class="docutils literal notranslate"><span class="pre">DELETE</span></code> methods,
+several metrics are sent. All metric names are composed from
+<code class="docutils literal notranslate"><span class="pre">request_category</span></code> parameter (either from object property or from
+argument passed to the method):</p>
+<ul>
+<li><p><strong>response time</strong> - <code class="docutils literal notranslate"><span class="pre">booking.{request_category}.response_time</span></code>:</p>
+<blockquote>
+<div><p>Response time metric is used to time how long it took for a client
+to receive response (if any).</p>
+</div></blockquote>
+</li>
+<li><p><strong>request status</strong> - <code class="docutils literal notranslate"><span class="pre">booking.{request_category}.request</span></code>:</p>
+<blockquote>
+<div><p>Request status metric is used to track the success status of the request.</p>
+<p>Status is tracked with two tag groups:</p>
+<blockquote>
+<div><ul>
+<li><p><strong>status</strong>:</p>
+<blockquote>
+<div><p>status can have 2 values: <code class="docutils literal notranslate"><span class="pre">success</span></code> or <code class="docutils literal notranslate"><span class="pre">error</span></code></p>
+</div></blockquote>
+</li>
+<li><p><strong>error</strong> (optional):</p>
+<blockquote>
+<div><p>error tag is added to event only if request failed
+(status:error tag is present in the event) and it is used
+to describe error type in better detail.</p>
+<p>Possible values are:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code>: request has timed out</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">http_error</span></code>: server has responded http 4xx or 5xx</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">connection_error</span></code>: connection to server failed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">request_exception</span></code>: other</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Bear in mind that <code class="docutils literal notranslate"><span class="pre">statsd.namespace</span></code> can be used in order to
+prepend desired prefix to the metric, e.g. setting
+<code class="docutils literal notranslate"><span class="pre">statsd.namespace</span> <span class="pre">=</span> <span class="pre">&quot;prefix&quot;</span></code> and calling
+<code class="docutils literal notranslate"><span class="pre">metric_increment(metric=&quot;metric&quot;,</span> <span class="pre">request_category=&quot;category&quot;)</span></code> will
+produce <code class="docutils literal notranslate"><span class="pre">prefix.category.metric</span></code> instead of <code class="docutils literal notranslate"><span class="pre">category.metric</span></code>.</p>
+<p>Additionally, you can include you own tags that will be appended to
+metric tags.</p>
+</div></blockquote>
+</li>
+</ul>
+<div class="section" id="example-of-sending-metrics">
+<h2>Example of Sending Metrics<a class="headerlink" href="#example-of-sending-metrics" title="Permalink to this headline">¶</a></h2>
+<p>To send metrics to DataDogHQ, just pass the <code class="docutils literal notranslate"><span class="pre">statsd</span></code> and <code class="docutils literal notranslate"><span class="pre">dd-trace</span></code>
+packages to the object <code class="docutils literal notranslate"><span class="pre">RequestSession</span></code> object:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">ddtrace</span>
+<span class="kn">import</span> <span class="nn">statsd</span>
+<span class="kn">from</span> <span class="nn">request_session</span> <span class="kn">import</span> <span class="n">RequestSession</span>
+
+<span class="c1"># ...some setting up of statsd and ddtrace...</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">RequestSession</span><span class="p">(</span>
+    <span class="n">host</span><span class="o">=</span><span class="s2">&quot;https://google.com&quot;</span>
+    <span class="n">request_category</span><span class="o">=</span><span class="s2">&quot;google_search&quot;</span><span class="p">,</span>
+    <span class="n">max_retries</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">datadog_service_name</span><span class="o">=</span><span class="s2">&quot;dd_service_name&quot;</span><span class="p">,</span>
+    <span class="n">ddtrace</span><span class="o">=</span><span class="n">ddtrace</span><span class="p">,</span>
+    <span class="n">statsd</span><span class="o">=</span><span class="n">statsd</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">&quot;/some_path&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="request_session.html" class="btn btn-neutral float-right" title="request_session package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="logging.html" class="btn btn-neutral float-left" title="Logging" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Booking Backend
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

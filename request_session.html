@@ -1,0 +1,271 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>request_session package &mdash; request_session  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="How to Contribute" href="how_to_contribute.html" />
+    <link rel="prev" title="Metrics" href="metrics.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> request_session
+          
+
+          
+            
+            <img src="_static/logo.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="retry.html">Automatic Retries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logging.html">Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">Metrics</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">request_session package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#request-session">request_session</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#additional-requests-parameters">Additional <code class="docutils literal notranslate"><span class="pre">requests</span></code> parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#exceptions">exceptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#protocols">protocols</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#utilities">utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="how_to_contribute.html">How to Contribute</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">request_session</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>request_session package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/request_session.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="request-session-package">
+<h1>request_session package<a class="headerlink" href="#request-session-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="request-session">
+<h2>request_session<a class="headerlink" href="#request-session" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="additional-requests-parameters">
+<h3>Additional <code class="docutils literal notranslate"><span class="pre">requests</span></code> parameters<a class="headerlink" href="#additional-requests-parameters" title="Permalink to this headline">¶</a></h3>
+<p>Since <code class="docutils literal notranslate"><span class="pre">RequestSession</span></code> uses <code class="docutils literal notranslate"><span class="pre">requests.Session</span></code>,
+you can pass any parameters that <code class="docutils literal notranslate"><span class="pre">requests.Session</span></code>
+takes to any of the <code class="docutils literal notranslate"><span class="pre">GET</span></code>, <code class="docutils literal notranslate"><span class="pre">POST</span></code>, <code class="docutils literal notranslate"><span class="pre">PUT</span></code> and <code class="docutils literal notranslate"><span class="pre">DELETE</span></code>
+methods as a keyword argument:</p>
+<ul class="simple">
+<li><p>url: (<em>optional</em>) To override <code class="docutils literal notranslate"><span class="pre">url</span></code> param.</p></li>
+<li><p>params: (<em>optional</em>) Dictionary or bytes to be sent in the query string for
+the Request.</p></li>
+<li><p>data: (<em>optional</em>) Dictionary or list of tuples <code class="docutils literal notranslate"><span class="pre">[(key,</span> <span class="pre">value)]</span></code>
+(which is form-encoded by <a class="reference external" href="https://requests.kennethreitz.org/en/master/">requests</a>), bytes, or file-like object to send
+in the body of the Request.</p></li>
+<li><p>json: (<em>optional</em>) A JSON serializable Python object to send in the body of
+the Request.</p></li>
+<li><p>headers: (<em>optional</em>) Dictionary of HTTP Headers to send with the Request.</p></li>
+<li><p>cookies: (<em>optional</em>) Dict or CookieJar object to send with the Request.</p></li>
+<li><p>files: (<em>optional</em>) Dictionary of <code class="docutils literal notranslate"><span class="pre">'name':</span> <span class="pre">file-like-objects</span></code></p></li>
+<li><p>auth: (<em>optional</em>) Auth tuple to enable Basic/Digest/Custom HTTP Auth.</p></li>
+<li><p>timeout: (<em>optional</em>) How many seconds to wait for the server to send data
+before giving up, as a float, or a <code class="docutils literal notranslate"><span class="pre">(connect</span> <span class="pre">timeout,</span> <span class="pre">read</span> <span class="pre">timeout)</span>
+<span class="pre">&lt;timeouts&gt;</span></code> tuple.</p></li>
+<li><p>allow_redirects: (<em>optional</em>) Boolean.
+Enable/disable GET/OPTIONS/POST/PUT/PATCH/DELETE/HEAD redirection.
+Defaults to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p>proxies: (<em>optional</em>) Dictionary mapping protocol to the URL of the proxy.</p></li>
+<li><p>verify: (<em>optional</em>) Can be either:</p>
+<ul>
+<li><p>A boolean, in which case it controls whether we
+verify the TLS certificate of the server.</p></li>
+<li><p>A string, in which case it must be a path to
+a CA bundle to use. Defaults to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+</ul>
+</li>
+<li><p>stream: (<em>optional</em>) If it is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the response content is immediately
+downloaded.</p></li>
+<li><p>cert: (<em>optional</em>) If it is a <code class="docutils literal notranslate"><span class="pre">String</span></code>, path to ssl client cert file (.pem).
+If it is a <code class="docutils literal notranslate"><span class="pre">Tuple</span></code>, (‘cert’, ‘key’) pair.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="exceptions">
+<h2>exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="protocols">
+<h2>protocols<a class="headerlink" href="#protocols" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="utilities">
+<h2>utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="how_to_contribute.html" class="btn btn-neutral float-right" title="How to Contribute" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="metrics.html" class="btn btn-neutral float-left" title="Metrics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Booking Backend
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
