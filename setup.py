@@ -20,7 +20,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Josef Podany",
     author_email="josef.podany@kiwi.com",
-    packages=find_packages(),
+    packages=find_packages(exclude=["test*"]),
     install_requires=install_requires,
     tests_require=tests_require,
     include_package_data=True,
