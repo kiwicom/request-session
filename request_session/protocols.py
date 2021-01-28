@@ -11,11 +11,33 @@ class SentryClient(object):
 
     def captureException(self, exc_info=None, **kwargs):
         # type: (Any, Any) -> None
-        """Creates an event from an exception.
+        """Creates an event from an exception. Deprecated, use ``capture_exception`` instead.
+
+        Used in combination with deprecated raven client.
 
         >>> try:
         >>>     exc_info = sys.exc_info()
         >>>     client.captureException(exc_info)
+        >>> finally:
+        >>>     del exc_info
+
+        If exc_info is not provided, or is set to True, then this method will
+        perform the ``exc_info = sys.exc_info()`` and the requisite clean-up
+        for you.
+
+        ``kwargs`` are passed through to ``.capture``.
+        """
+        raise NotImplementedError
+
+    def capture_exception(self, exc_info=None, **kwargs):
+        # type: (Any, Any) -> None
+        """Creates an event from an exception.
+
+        Preferred method to capture exception, compatible with sentry_sdk.
+
+        >>> try:
+        >>>     exc_info = sys.exc_info()
+        >>>     client.capture_exception(exc_info)
         >>> finally:
         >>>     del exc_info
 
