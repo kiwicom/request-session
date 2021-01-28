@@ -1,12 +1,10 @@
 """Main RequestSession module."""
 import re
-import sys
 import time
 from collections import namedtuple
 from typing import List  # pylint: disable=unused-import
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
-import attr
 import requests
 import requests.adapters
 import simplejson as json
@@ -16,7 +14,6 @@ from .exceptions import InvalidUserAgentString, RequestSessionException
 from .protocols import Ddtrace, SentryClient, Statsd
 from .utils import (
     UserAgentComponents,
-    dict_to_string,
     reraise_as_third_party,
     split_tags_and_update,
     traced_sleep,
@@ -271,7 +268,7 @@ class RequestSession(object):
         tags=None,  # type: Optional[list]
         raise_for_status=None,  # type: Optional[bool]
         **request_kwargs  # type: Any
-    ):
+    ):  # pylint: disable=too-many-statements
         # type: (...) -> Optional[requests.Response]
         r"""Run a request against a service depending on a request type.
 
@@ -404,7 +401,14 @@ class RequestSession(object):
                             if response_text != ""
                             else None
                         )
-                        self.sentry_client.captureException(extra=extra_data)
+                        if callable(
+                            getattr(self.sentry_client, "capture_exception", None)
+                        ):
+                            self.sentry_client.capture_exception(extras=extra_data)
+                        elif callable(
+                            getattr(self.sentry_client, "captureException", None)
+                        ):
+                            self.sentry_client.captureException(extra=extra_data)
 
                     if raise_for_status:
                         raise RequestSessionException(  # pylint: disable=raise-missing-from

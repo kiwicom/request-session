@@ -6,7 +6,6 @@ from typing import Any, Callable, Dict, Iterator, List, Union
 import httpbin as Httpbin
 import pytest
 import requests
-import simplejson as json
 
 from request_session import RequestSession, UserAgentComponents
 from request_session.exceptions import (
@@ -20,13 +19,8 @@ from request_session.protocols import Ddtrace, SentryClient, Statsd
 from ._compat import Mock
 
 REQUEST_CATEGORY = "test"  # this request category must match the one in conftest
-INTERNAL_ERROR_MSG = (
-    "500 Server Error: INTERNAL SERVER ERROR for url: "
-    "http://127.0.0.1:8080/status/500"
-)
-TIMEOUT_ERROR_MSG = (
-    "408 Client Error: REQUEST TIMEOUT for url: http://127.0.0.1:8080/status/408"
-)
+INTERNAL_ERROR_MSG = "500 Server Error: INTERNAL SERVER ERROR for url:"
+TIMEOUT_ERROR_MSG = "408 Client Error: REQUEST TIMEOUT for url:"
 DDTRACE_ERROR_MSG = "Ddtrace must be provided in order to report to datadog service."
 USER_AGENT_ERROR_MSG = "Provided User-Agent string is not valid."
 
@@ -339,7 +333,7 @@ def test_logging(mocker, request_session, inputs, expected):
         for key, value in actual[2].items():
             if key == "error":
                 assert type(mock[2][key]) is type(value)
-                assert mock[2][key].args == value.args
+                assert value.args[0].startswith(mock[2][key].args[0])
             else:
                 assert mock[2][key] == value
 
@@ -617,7 +611,7 @@ def test_exception_and_log_metrics(request_session, mocker, inputs, expected):
         "{}.failed".format(client.request_category),
         error_type=expected["error_type"],
         status_code=inputs["status_code"],
-        **expected["extra_params"]
+        **expected["extra_params"],
     )
 
     mock_metric_increment.assert_called_once_with(
@@ -641,7 +635,7 @@ def test_reporting(request_session, mocker):
     mock_sentry_client = mocker.Mock(spec_set=SentryClient)
     session = request_session(raise_for_status=False, sentry_client=mock_sentry_client)
     session.get(path="/status/404", report=True)
-    mock_sentry_client.captureException.assert_called_once_with(extra=None)
+    mock_sentry_client.capture_exception.assert_called_once_with(extras=None)
 
 
 @pytest.mark.parametrize(
