@@ -1,6 +1,6 @@
-pytest<5.0.0
+pytest
 pytest-cov
 pytest-httpbin
 pytest-mock
-more-itertools==5.0.0
+more-itertools
 structlog
