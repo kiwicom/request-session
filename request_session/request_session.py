@@ -146,15 +146,17 @@ class RequestSession(object):
         # type: () -> None
         """Set proper user-agent string to header according to RFC22."""
         pattern = r"^(?P<service_name>\S.+?)\/(?P<version>\S.+?) \((?P<organization>\S.+?) (?P<environment>\S.+?)\)(?: ?(?P<sys_info>.*))$"
-        string = "{service_name}/{version} ({organization} {environment}) {sys_info}".format(
-            service_name=self.user_agent_components.service_name,  # type: ignore
-            version=self.user_agent_components.version,  # type: ignore
-            organization=self.user_agent_components.organization,  # type: ignore
-            environment=self.user_agent_components.environment,  # type: ignore
-            sys_info=self.user_agent_components.sys_info  # type: ignore
-            if self.user_agent_components.sys_info  # type: ignore
-            else "",
-        ).strip()
+        string = (
+            "{service_name}/{version} ({organization} {environment}) {sys_info}".format(
+                service_name=self.user_agent_components.service_name,  # type: ignore
+                version=self.user_agent_components.version,  # type: ignore
+                organization=self.user_agent_components.organization,  # type: ignore
+                environment=self.user_agent_components.environment,  # type: ignore
+                sys_info=self.user_agent_components.sys_info  # type: ignore
+                if self.user_agent_components.sys_info  # type: ignore
+                else "",
+            ).strip()
+        )
         if not re.match(pattern, string):
             raise InvalidUserAgentString("Provided User-Agent string is not valid.")
         self.user_agent = string
@@ -405,7 +407,9 @@ class RequestSession(object):
                         self.sentry_client.captureException(extra=extra_data)
 
                     if raise_for_status:
-                        raise RequestSessionException(str(error), original_exc=error)
+                        raise RequestSessionException(  # pylint: disable=raise-missing-from
+                            str(error), original_exc=error
+                        )
                     return response
 
                 if sleep_before_repeat:
