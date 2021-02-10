@@ -6,7 +6,6 @@ from collections import namedtuple
 from typing import List  # pylint: disable=unused-import
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
-import attr
 import requests
 import requests.adapters
 import simplejson as json
