@@ -71,8 +71,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - run: apk add --no-cache tar
-
       - name: Cache
         uses: actions/cache@v2
         with:
