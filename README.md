@@ -49,7 +49,7 @@ outcome of the request (a DataDog integration is needed).
 (an APM integration is needed).
 
 You can find more details about `RequestSession`'s benefits and examples in
-[the official documentation](https://readthedocs.com).
+[the official documentation](https://kiwicom.github.io/request-session/).
 
 ## How to run test
 
