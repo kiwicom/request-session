@@ -49,6 +49,8 @@ class RequestSession(object):
         ``requests.Session`` to be used to make the HTTP requests.
     :param Ddtrace ddtrace: (optional) DataDog function to be used to trace, track and
         send metrics for individual HTTP requests.
+    :param str ddtrace_service_name: (optional) Service name passed to DataDog DdTrace. Set to "booking_api_requests"
+        by default.
     :param Statsd statsd: (optional) Datadog module to log metrics.
     :param SentryClient sentry_client: (optional) Sentry module to log exceptions.
     :param Callable logger: (optional) Logger to be used when logging to `stdout`
@@ -89,6 +91,7 @@ class RequestSession(object):
             "exception",
             "log",
         ),  # type: Tuple
+        ddtrace_service_name="booking_api_requests",  # type: str
     ):
         # type: (...) -> None
         self.host = host
@@ -103,6 +106,7 @@ class RequestSession(object):
         self.user_agent = user_agent
         self.user_agent_components = user_agent_components
         self.ddtrace = ddtrace
+        self.ddtrace_service_name = ddtrace_service_name
         self.statsd = statsd
         self.sentry_client = sentry_client
         self.logger = logger
@@ -449,7 +453,7 @@ class RequestSession(object):
             if self.ddtrace:
                 with self.ddtrace.tracer.trace(
                     "api.request",
-                    service="booking_api_requests",
+                    service=self.ddtrace_service_name,
                     resource=request_category,
                 ):
                     response = self.session.request(
