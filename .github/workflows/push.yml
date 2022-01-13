@@ -27,7 +27,7 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('requirements.txt') }}
     strategy:
       matrix:
-        toxenv: [py36, py37, py38, py39]
+        toxenv: [py37, py38, py39]
 
   lint:
     name: pylint

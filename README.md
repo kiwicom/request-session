@@ -42,7 +42,7 @@ response = client.get(
 * **Retry**: It is possible to configure a retry in case of request failure.
 * **Logs**: Result of the request can also be logged to `stdout`.
 * **Metrics**: On each call you make to `GET`, `POST`, `PUT`, `PATCH`, and
-DELETE` methods, several metrics are sent to your datadog client -
+`DELETE` methods, several metrics are sent to your datadog client -
 duration of the request, how many requests were sent,
 outcome of the request (a DataDog integration is needed).
 * **Tracing**: `RequestSession` can send tracing info to DataDog
