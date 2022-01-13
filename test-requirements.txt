@@ -4,21 +4,21 @@
 #
 #    pip-compile --output-file=./test-requirements.txt ./test-requirements.in
 #
-attrs==20.3.0
+attrs==21.4.0
     # via pytest
 blinker==1.4
     # via raven
 brotlipy==0.7.0
     # via httpbin
-cffi==1.14.4
+cffi==1.15.0
     # via brotlipy
-click==7.1.2
+click==8.0.3
     # via flask
-coverage==5.4
+coverage[toml]==6.2
     # via pytest-cov
-decorator==4.4.2
+decorator==5.1.1
     # via httpbin
-flask==1.1.2
+flask==2.0.2
     # via
     #   httpbin
     #   raven
@@ -26,58 +26,61 @@ httpbin==0.7.0
     # via pytest-httpbin
 importlib-metadata==4.10.0
     # via
+    #   click
     #   pluggy
     #   pytest
 iniconfig==1.1.1
     # via pytest
-itsdangerous==1.1.0
+itsdangerous==2.0.1
     # via
     #   flask
     #   httpbin
-jinja2==2.11.3
+jinja2==3.0.3
     # via flask
-markupsafe==1.1.1
+markupsafe==2.0.1
     # via
     #   httpbin
     #   jinja2
-more-itertools==8.6.0
+more-itertools==8.12.0
     # via -r ./test-requirements.in
-packaging==20.9
+packaging==21.3
     # via pytest
-pluggy==0.13.1
+pluggy==1.0.0
     # via pytest
-py==1.10.0
+py==1.11.0
     # via pytest
-pycparser==2.20
+pycparser==2.21
     # via cffi
-pyparsing==2.4.7
+pyparsing==3.0.6
     # via packaging
-pytest==6.2.2
+pytest==6.2.5
     # via
     #   -r ./test-requirements.in
     #   pytest-cov
     #   pytest-mock
-pytest-cov==2.11.1
+pytest-cov==3.0.0
     # via -r ./test-requirements.in
-pytest-httpbin==1.0.0
+pytest-httpbin==1.0.1
     # via -r ./test-requirements.in
-pytest-mock==3.5.1
+pytest-mock==3.6.1
     # via -r ./test-requirements.in
 raven[flask]==6.10.0
     # via httpbin
-six==1.15.0
+six==1.16.0
     # via
     #   httpbin
     #   pytest-httpbin
-structlog==20.2.0
+structlog==21.5.0
     # via -r ./test-requirements.in
 toml==0.10.2
     # via pytest
+tomli==2.0.0
+    # via coverage
 typing-extensions==4.0.1
     # via
     #   importlib-metadata
     #   structlog
-werkzeug==1.0.1
+werkzeug==2.0.2
     # via
     #   flask
     #   httpbin
