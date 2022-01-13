@@ -1,11 +1,7 @@
 """Simple protocols to duck type dependency injections."""
-from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, List, Optional
-
-from six import add_metaclass
+from typing import Any, List, Optional
 
 
-@add_metaclass(ABCMeta)
 class SentryClient(object):
     """SentryClient protocol."""
 
@@ -50,7 +46,6 @@ class SentryClient(object):
         raise NotImplementedError
 
 
-@add_metaclass(ABCMeta)
 class Tracer(object):
     """Statsd Tracer protocol."""
 
@@ -93,7 +88,6 @@ class Tracer(object):
         raise NotImplementedError
 
 
-@add_metaclass(ABCMeta)
 class Span(object):
     """Span protocol."""
 
@@ -127,7 +121,6 @@ class Span(object):
         raise NotImplementedError
 
 
-@add_metaclass(ABCMeta)
 class Config(object):
     """Statsd Config protocol."""
 
@@ -142,7 +135,6 @@ class Config(object):
         raise NotImplementedError
 
 
-@add_metaclass(ABCMeta)
 class Ddtrace(object):
     """Ddtrace protocol."""
 
@@ -150,7 +142,6 @@ class Ddtrace(object):
     tracer = None  # type: Tracer
 
 
-@add_metaclass(ABCMeta)
 class Statsd(object):
     """Statsd protocol."""
 
@@ -195,7 +186,6 @@ class Statsd(object):
         """
 
 
-@add_metaclass(ABCMeta)
 class TimedContextManagerDecorator(object):
     """TimedContextManagerDecorator protocol."""
 

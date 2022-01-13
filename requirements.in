@@ -1,5 +1,3 @@
 requests
 simplejson
 structlog
-typing
-six
