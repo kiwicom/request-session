@@ -39,7 +39,7 @@ def dict_to_string(dictionary):
     # type: (Dict[str, Any]) -> Text
     """Convert dictionary to key=value pairs separated by a space."""
     return " ".join(
-        [u"{}={}".format(key, value) for key, value in sorted(dictionary.items())]
+        ["{}={}".format(key, value) for key, value in sorted(dictionary.items())]
     )
 
 
