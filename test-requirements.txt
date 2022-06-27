@@ -73,8 +73,9 @@ tomli==2.0.1
     # via
     #   coverage
     #   pytest
-werkzeug==2.1.2
+werkzeug==2.0.3
     # via
+    #   -r ./test-requirements.in
     #   flask
     #   httpbin
 zipp==3.8.0
