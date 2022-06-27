@@ -43,17 +43,17 @@ def dict_to_string(dictionary):
     )
 
 
-def traced_sleep(trace_name, seconds, ddtrace, meta=None):
+def traced_sleep(trace_name, seconds, ddtrace, tags=None):
     # type: (str, float, Ddtrace, Optional[dict]) -> None
     """Sleep function that is traced in datadog.
 
     :param str trace_name: the name of the operation being traced
     :param float seconds: seconds param for sleep()
-    :param dict meta: meta tags to be added to trace e.g. `{"caller": "create_connection"}`
+    :param dict tags: tags to be added to trace e.g. `{"caller": "create_connection"}`
 
     :return: None
     """
     with ddtrace.tracer.trace(trace_name, service="sleep") as span:
-        if meta:
-            span.set_metas(meta)
+        if tags:
+            span.set_tags(tags)
         time.sleep(seconds)

@@ -501,9 +501,9 @@ class RequestSession(object):
         :param List[str] tags: tags for datadog
         """
         trace_name = request_category.replace(".", "_") + "_retry"
-        meta = {"request_category": request_category}
-        split_tags_and_update(meta, tags)
-        traced_sleep(trace_name, seconds, self.ddtrace, meta)  # type: ignore
+        default_tags = {"request_category": request_category}
+        split_tags_and_update(default_tags, tags)
+        traced_sleep(trace_name, seconds, self.ddtrace, default_tags)  # type: ignore
 
     def metric_increment(self, metric, request_category, tags, attempt=None):
         # type: (str, str, list, Optional[int]) -> None
