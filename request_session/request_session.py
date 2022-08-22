@@ -92,6 +92,7 @@ class RequestSession(object):
             "log",
         ),  # type: Tuple
         ddtrace_service_name="booking_api_requests",  # type: str
+        retriable_client_errors=None,  # type: Optional[List[int]]
     ):
         # type: (...) -> None
         self.host = host
@@ -112,6 +113,7 @@ class RequestSession(object):
         self.logger = logger
         self.log_prefix = log_prefix
         self.allowed_log_levels = allowed_log_levels
+        self.retriable_client_errors = retriable_client_errors if retriable_client_errors else [408]
 
         self.prepare_new_session()
 
@@ -364,7 +366,7 @@ class RequestSession(object):
                         attempt=run,
                     )
 
-                if self.is_server_error(error, status_code):
+                if self.is_server_error(error, status_code) or self.retry_on_client_errors(status_code):
                     if is_econnreset_error:
                         self.log("info", "{}.session_replace".format(request_category))
                         self.remove_session()
@@ -609,10 +611,22 @@ class RequestSession(object):
         if not isinstance(error, requests.exceptions.HTTPError):
             return True
 
-        if http_code is not None and (400 <= http_code < 500 and not http_code == 408):
+        if http_code is not None and (400 <= http_code < 500):
             return False
 
         return True
+
+    def retry_on_client_errors(self, http_code):
+        # type: (Optional[int]) -> bool
+        """Decide if retry should be done even on client http error.
+
+        :param int http_code: (optional) response HTTP status code
+        :return bool: whether retry should occur
+        """
+        if http_code is not None and http_code in self.retriable_client_errors:
+            return True
+
+        return False
 
     @staticmethod
     def get_response_text(response):
