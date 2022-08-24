@@ -12,9 +12,10 @@ E.g. if retry is set to 2 and there is no success on any attempt,
 the total number of requests will be 3: nominal request and 2 retries on
 failure.
 
-Important note: the request  is not retried in case of client error,
-that is if the server responded with HTTP 4xx,
-not including HTTP 408 Request Timeout
+Important note: by default, the request is not retried in case of client error,
+that is if the server responded with HTTP 4xx, not including HTTP 408 Request Timeout.
+This behavior is configurable using ``retriable_client_errors`` constructor parameter,
+where custom list of HTTP codes can be provided to enable automatic retry.
 
 If ``sleep_before_repeat`` parameter is passed,
 the method waits for that amount of seconds before retrying.

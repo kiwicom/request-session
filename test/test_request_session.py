@@ -646,7 +646,7 @@ def test_reporting(request_session, mocker):
         (requests.exceptions.Timeout(), None, True),
         (requests.exceptions.HTTPError(), 400, False),
         (requests.exceptions.HTTPError(), 399, True),
-        (requests.exceptions.HTTPError(), 408, True),  # Timeout is server error
+        (requests.exceptions.HTTPError(), 408, False),
         (requests.exceptions.HTTPError(), 499, False),
         (requests.exceptions.HTTPError(), 500, True),
         (requests.exceptions.HTTPError(), None, True),
@@ -655,3 +655,22 @@ def test_reporting(request_session, mocker):
 def test_is_server_error(exception, status_code, expected):
     # type: (RequestException, Union[int, None], bool) -> None
     assert RequestSession.is_server_error(exception, status_code) == expected
+
+
+@pytest.mark.parametrize(
+    ("status_code, extended_retry_errors, expected"),
+    [
+        (None, [], False),
+        (408, [], True),  # Timeout is retried by default
+        (408, [429], False),
+        (408, [408, 429], True),
+        (200, [], False),
+        (429, [], False),
+        (429, [429], True),
+        (500, [], False),
+    ],
+)
+def test_retry_on_client_errors(status_code, extended_retry_errors, expected):
+    # type: (RequestException, Union[int, None], bool) -> None
+    session = RequestSession(retriable_client_errors=extended_retry_errors)
+    assert session.retry_on_client_errors(status_code) == expected
