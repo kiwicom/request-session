@@ -169,9 +169,10 @@ The parameter is the number of retries on failure, not a maximum number of attem
 E.g. if retry is set to 2 and there is no success on any attempt,
 the total number of requests will be 3: nominal request and 2 retries on
 failure.</p>
-<p>Important note: the request  is not retried in case of client error,
-that is if the server responded with HTTP 4xx,
-not including HTTP 408 Request Timeout</p>
+<p>Important note: by default, the request is not retried in case of client error,
+that is if the server responded with HTTP 4xx, not including HTTP 408 Request Timeout.
+This behavior is configurable using <code class="docutils literal notranslate"><span class="pre">retriable_client_errors</span></code> constructor parameter,
+where custom list of HTTP codes can be provided to enable automatic retry.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">sleep_before_repeat</span></code> parameter is passed,
 the method waits for that amount of seconds before retrying.</p>
 <div class="section" id="examples">
