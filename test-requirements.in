@@ -4,4 +4,4 @@ pytest-httpbin
 pytest-mock
 more-itertools
 structlog
-werkzeug==2.0.3
+werkzeug==2.2.3
