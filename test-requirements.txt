@@ -24,8 +24,6 @@ flask==2.1.2
     #   raven
 httpbin==0.7.0
     # via pytest-httpbin
-importlib-metadata==4.12.0
-    # via flask
 iniconfig==1.1.1
     # via pytest
 itsdangerous==2.1.2
@@ -38,8 +36,9 @@ markupsafe==2.1.1
     # via
     #   httpbin
     #   jinja2
+    #   werkzeug
 more-itertools==8.13.0
-    # via -r ./test-requirements.in
+    # via -r test-requirements.in
 packaging==21.3
     # via pytest
 pluggy==1.0.0
@@ -52,15 +51,15 @@ pyparsing==3.0.9
     # via packaging
 pytest==7.1.2
     # via
-    #   -r ./test-requirements.in
+    #   -r test-requirements.in
     #   pytest-cov
     #   pytest-mock
 pytest-cov==3.0.0
-    # via -r ./test-requirements.in
+    # via -r test-requirements.in
 pytest-httpbin==1.0.2
-    # via -r ./test-requirements.in
+    # via -r test-requirements.in
 pytest-mock==3.8.1
-    # via -r ./test-requirements.in
+    # via -r test-requirements.in
 raven[flask]==6.10.0
     # via httpbin
 six==1.16.0
@@ -68,15 +67,11 @@ six==1.16.0
     #   httpbin
     #   pytest-httpbin
 structlog==21.5.0
-    # via -r ./test-requirements.in
+    # via -r test-requirements.in
 tomli==2.0.1
+    # via pytest
+werkzeug==2.2.3
     # via
-    #   coverage
-    #   pytest
-werkzeug==2.0.3
-    # via
-    #   -r ./test-requirements.in
+    #   -r test-requirements.in
     #   flask
     #   httpbin
-zipp==3.8.0
-    # via importlib-metadata
