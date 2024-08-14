@@ -1,4 +1,5 @@
 """Simple protocols to duck type dependency injections."""
+
 from typing import Any, List, Optional
 
 

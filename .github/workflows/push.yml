@@ -70,18 +70,19 @@ jobs:
 
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.11
 
       - name: Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: .pre-commit-cache
           key: static-checks-${{ hashFiles('.pre-commit-config.yaml') }}
+
       # git checkout is not creating a working git folder, it has dubious ownership if not configured
       # The pre-commit hook will not work on this original git folder
       # https://github.com/pre-commit/pre-commit/issues/2125

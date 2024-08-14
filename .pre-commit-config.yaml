@@ -4,7 +4,7 @@ default_language_version:
 exclude: "^.github.*"
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.4.0
+    rev: v4.6.0
     hooks:
       - id: trailing-whitespace
         exclude: ^.*\.md$
@@ -35,7 +35,7 @@ repos:
         language_version: system
 
   - repo: https://github.com/pycqa/isort
-    rev: 5.7.0
+    rev: 5.13.2
     hooks:
       - id: isort
         additional_dependencies: [".[pyproject]"]
@@ -46,7 +46,7 @@ repos:
       - id: black
 
   - repo: https://github.com/PyCQA/pylint
-    rev: pylint-2.6.0
+    rev: v3.2.6
     hooks:
       - id: pylint
         exclude: ^(docs/).*$

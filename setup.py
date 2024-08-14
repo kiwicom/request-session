@@ -5,10 +5,10 @@ from setuptools import find_packages, setup
 with open("README.md", encoding="utf-8") as f:
     readme = f.read()
 
-with open("requirements.in") as f:
+with open("requirements.in", encoding="utf-8") as f:
     install_requires = [line for line in f if line and line[0] not in "#-"]
 
-with open("test-requirements.in") as f:
+with open("test-requirements.in", encoding="utf-8") as f:
     tests_require = [line for line in f if line and line[0] not in "#-"]
 
 setup(
