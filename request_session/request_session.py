@@ -3,6 +3,7 @@
 import re
 import time
 from collections import namedtuple
+from copy import deepcopy
 from typing import List  # pylint: disable=unused-import
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
@@ -41,6 +42,9 @@ class RequestSession(object):
         server error. Defaults to 0.
     :param bool verbose_logging: (optional) If true, add request's parameters to event
         being logged. Defaults to ``False``.
+    :param tuple request_param_logging_blacklist: (optional)
+        Request params keys that won't be logged with verbose_logging.
+        e.g. auth or header keys might contain secrets. Defaults to ``("auth", "headers")``.
     :param str request_category: (optional) Name of the event. ``request_category`` has
         to passed to the object or as an argument when calling some HTTP method.
     :param bool raise_for_status: (optional) Raise an exception in case of an error.
@@ -73,6 +77,7 @@ class RequestSession(object):
         verify=True,  # type: Union[bool, str]
         max_retries=0,  # type: int
         verbose_logging=False,  # type: bool
+        request_param_logging_blacklist=None,  # type: Optional[Tuple[str]]
         headers=None,  # type: Optional[Dict]
         request_category=None,  # type: Optional[str]
         raise_for_status=True,  # type: bool
@@ -102,6 +107,10 @@ class RequestSession(object):
         self.verify = verify
         self.max_retries = max_retries
         self.verbose_logging = verbose_logging
+        self.request_param_logging_blacklist = request_param_logging_blacklist or (
+            "auth",
+            "headers",
+        )
         self.headers = headers
         self.request_category = request_category
         self.raise_for_status = raise_for_status
@@ -471,7 +480,11 @@ class RequestSession(object):
         """
         extra_params = (
             {
-                "request_params": json.dumps(request_params),
+                "request_params": {
+                    k: v
+                    for k, v in deepcopy(request_params).items()
+                    if k not in self.request_param_logging_blacklist
+                },
                 "response_text": self.get_response_text(response),
             }
             if self.verbose_logging
