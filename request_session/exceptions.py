@@ -1,4 +1,5 @@
 """Module contains exceptions from requests and request_session."""
+
 from typing import Any  # pylint: disable=unused-import
 
 from requests.exceptions import ConnectionError  # pylint: disable=redefined-builtin

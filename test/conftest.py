@@ -1,4 +1,5 @@
 """Just a conftest."""
+
 from typing import Any, Callable
 
 import httpbin as Httpbin

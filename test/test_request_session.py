@@ -1,4 +1,5 @@
 """Test the main module."""
+
 import itertools
 import sys
 from typing import Any, Callable, Dict, Iterator, List, Union
@@ -29,7 +30,7 @@ def test_init(mocker, httpbin):
     # type: (Mock, Httpbin) -> None
     """Test initialization of RequestSession."""
     mock_ddtrace = mocker.Mock(spec_set=Ddtrace)
-    mock_tracing_config = dict()  # type: Dict[Any, Any]
+    mock_tracing_config: dict = {}
     mock_ddtrace.config.get_from.return_value = mock_tracing_config
 
     session = RequestSession(
@@ -179,13 +180,13 @@ def test_raise_for_status(mocker, httpbin, status_code, raises):
     mock_sys.exc_info.return_value = (HTTPError, HTTPError(), "fake_traceback")
     if raises:
         with pytest.raises(raises):
-            session.get(path="/status/{status_code}".format(status_code=status_code))
+            session.get(path=f"/status/{status_code}")
 
         if isinstance(raises, HTTPError):
             assert mock_sys.exc_info()[1].__sentry_source == "third_party"
             assert mock_sys.exc_info()[1].__sentry_pd_alert == "disabled"
     else:
-        session.get(path="/status/{status_code}".format(status_code=status_code))
+        session.get(path=f"/status/{status_code}")
 
 
 @pytest.mark.parametrize(
@@ -239,9 +240,7 @@ def test_econnreset_error(
         client.get("/status/500")
     actual_call_count = sum(session.request.call_count for session in used_sessions)
 
-    mock_log.assert_called_with(
-        "info", "{category}.session_replace".format(category=client.request_category)
-    )
+    mock_log.assert_called_with("info", f"{client.request_category}.session_replace")
     assert mock_exception_log_and_metrics.call_count == 1
     assert actual_call_count == expected_call_count
 
@@ -305,7 +304,7 @@ def test_logging(mocker, request_session, inputs, expected):
     )
     client = request_session(max_retries=inputs["max_retries"])
     client._exception_log_and_metrics = mock_exception_log_and_metrics
-    expected["request_params"]["url"] = "{}{}".format(client.host, inputs["path"])
+    expected["request_params"]["url"] = f"{client.host}{inputs['path']}"
 
     calls = []
     for attempt in range(1, expected["call_count"] + 1):
@@ -360,11 +359,11 @@ def test_metric_increment(
 
     calls = []
     for attempt in range(1, call_count + 1):
-        metric = "{}.{}".format(client._get_request_category(), "request")
-        tags = ["status:{}".format(status)]
+        metric = f"{client._get_request_category()}.request"
+        tags = [f"status:{status}"]
         if error:
-            tags.append("error:{}".format(error))
-        calls.append(mocker.call(metric, tags=tags + ["attempt:{}".format(attempt)]))
+            tags.append(f"error:{error}")
+        calls.append(mocker.call(metric, tags=tags + [f"attempt:{attempt}"]))
 
     assert mock_statsd.increment.call_count == call_count
     mock_statsd.increment.assert_has_calls(calls)
@@ -458,7 +457,7 @@ def test_send_request(request_session, mocker, inputs, expected):
 
     assert isinstance(response, requests.Response)
     mock_statsd.timed.assert_called_once_with(
-        "{}.response_time".format(client.request_category),
+        f"{client.request_category}.response_time",
         use_ms=True,
         tags=inputs["tags"],
     )
@@ -608,7 +607,7 @@ def test_exception_and_log_metrics(request_session, mocker, inputs, expected):
 
     mock_log.assert_called_once_with(
         "exception",
-        "{}.failed".format(client.request_category),
+        f"{client.request_category}.failed",
         error_type=expected["error_type"],
         status_code=inputs["status_code"],
         **expected["extra_params"],

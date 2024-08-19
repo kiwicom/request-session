@@ -1,4 +1,5 @@
 """Test the utilities."""
+
 import sys
 from typing import Dict, List
 

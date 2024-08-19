@@ -1,4 +1,5 @@
 """Main RequestSession module."""
+
 import re
 import time
 from collections import namedtuple
@@ -113,7 +114,9 @@ class RequestSession(object):
         self.logger = logger
         self.log_prefix = log_prefix
         self.allowed_log_levels = allowed_log_levels
-        self.retriable_client_errors = retriable_client_errors if retriable_client_errors else [408]
+        self.retriable_client_errors = (
+            retriable_client_errors if retriable_client_errors else [408]
+        )
 
         self.prepare_new_session()
 
@@ -149,17 +152,7 @@ class RequestSession(object):
         # type: () -> None
         """Set proper user-agent string to header according to RFC22."""
         pattern = r"^(?P<service_name>\S.+?)\/(?P<version>\S.+?) \((?P<organization>\S.+?) (?P<environment>\S.+?)\)(?: ?(?P<sys_info>.*))$"
-        string = (
-            "{service_name}/{version} ({organization} {environment}) {sys_info}".format(
-                service_name=self.user_agent_components.service_name,  # type: ignore
-                version=self.user_agent_components.version,  # type: ignore
-                organization=self.user_agent_components.organization,  # type: ignore
-                environment=self.user_agent_components.environment,  # type: ignore
-                sys_info=self.user_agent_components.sys_info  # type: ignore
-                if self.user_agent_components.sys_info  # type: ignore
-                else "",
-            ).strip()
-        )
+        string = f"{self.user_agent_components.service_name}/{self.user_agent_components.version} ({self.user_agent_components.organization} {self.user_agent_components.environment}) {self.user_agent_components.sys_info if self.user_agent_components.sys_info else ''}".strip()
         if not re.match(pattern, string):
             raise InvalidUserAgentString("Provided User-Agent string is not valid.")
         self.user_agent = string
@@ -273,7 +266,7 @@ class RequestSession(object):
         sleep_before_repeat=None,  # type: Optional[float]
         tags=None,  # type: Optional[list]
         raise_for_status=None,  # type: Optional[bool]
-        **request_kwargs  # type: Any
+        **request_kwargs,  # type: Any
     ):  # pylint: disable=too-many-statements
         # type: (...) -> Optional[requests.Response]
         r"""Run a request against a service depending on a request type.
@@ -366,9 +359,11 @@ class RequestSession(object):
                         attempt=run,
                     )
 
-                if self.is_server_error(error, status_code) or self.retry_on_client_errors(status_code):
+                if self.is_server_error(
+                    error, status_code
+                ) or self.retry_on_client_errors(status_code):
                     if is_econnreset_error:
-                        self.log("info", "{}.session_replace".format(request_category))
+                        self.log("info", f"{request_category}.session_replace")
                         self.remove_session()
                         self.prepare_new_session()
 
@@ -444,9 +439,7 @@ class RequestSession(object):
         :param str request_category: Category for log and metric reporting.
         :return requests.Response: HTTP Response Object.
         """
-        metric_name = "{request_category}.response_time".format(
-            request_category=request_category
-        )
+        metric_name = f"{request_category}.response_time"
 
         if not self.statsd:
             return self.session.request(method=request_type, **request_params)
@@ -491,7 +484,7 @@ class RequestSession(object):
             status_code=response.status_code,
             attempt=attempt,
             url=url,
-            **extra_params
+            **extra_params,
         )
 
     def sleep(self, seconds, request_category, tags):
@@ -518,12 +511,10 @@ class RequestSession(object):
         """
         new_tags = list(tags) if tags else []
         if attempt:
-            new_tags.append("attempt:{attempt}".format(attempt=attempt))
+            new_tags.append(f"attempt:{attempt}")
 
         if self.statsd is not None:
-            metric_name = "{metric_base}.{metric_type}".format(
-                metric_base=request_category, metric_type=metric
-            )
+            metric_name = f"{request_category}.{metric}"
             self.statsd.increment(metric_name, tags=new_tags)
 
     def log(self, level, event, **kwargs):
@@ -537,7 +528,7 @@ class RequestSession(object):
         """
         if not level in self.allowed_log_levels:
             raise AttributeError("Provided log level is not allowed.")
-        event_name = "{prefix}.{event}".format(prefix=self.log_prefix, event=event)
+        event_name = f"{self.log_prefix}.{event}"
         if self.logger is not None:
             getattr(self.logger, level)(event_name, **kwargs)
 
@@ -586,17 +577,17 @@ class RequestSession(object):
 
         self.log(
             "exception",
-            "{}.failed".format(request_category),
+            f"{request_category}.failed",
             error_type=error_type,
             status_code=status_code,
             attempt=attempt,
-            **extra_params
+            **extra_params,
         )
 
         self.metric_increment(
             metric="request",
             request_category=request_category,
-            tags=tags + ["attempt:{}".format(attempt)],
+            tags=tags + [f"attempt:{attempt}"],
         )
 
     @staticmethod

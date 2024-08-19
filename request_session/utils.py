@@ -1,8 +1,8 @@
 """Utilites used in RequestSession."""
-import logging
+
 import sys
 import time
-from typing import Any, Dict, Iterator, List, Optional, Text
+from typing import Any, Dict, List, Optional
 
 from .protocols import Ddtrace
 
@@ -36,11 +36,9 @@ def split_tags_and_update(dictionary, tags):
 
 
 def dict_to_string(dictionary):
-    # type: (Dict[str, Any]) -> Text
+    # type: (Dict[str, Any]) -> str
     """Convert dictionary to key=value pairs separated by a space."""
-    return " ".join(
-        ["{}={}".format(key, value) for key, value in sorted(dictionary.items())]
-    )
+    return " ".join([f"{key}={value}" for key, value in sorted(dictionary.items())])
 
 
 def traced_sleep(trace_name, seconds, ddtrace, tags=None):

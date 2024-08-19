@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Setting up tox environment
-        uses: docker://kiwicom/tox:3.21.2
+        uses: docker://kiwicom/tox:3.25.0
         env:
           TOXENV: ${{ matrix.toxenv }}
           XDG_CACHE_HOME: /tmp/cache
@@ -27,7 +27,7 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('requirements.txt') }}
     strategy:
       matrix:
-        toxenv: [py37, py38, py39]
+        toxenv: [py39, py310, py311]
 
   lint:
     name: pylint
@@ -66,16 +66,28 @@ jobs:
   pre-commit:
     name: Static checks
     runs-on: ubuntu-latest
-    container: kiwicom/pre-commit:2.9.3
+    container: kiwicom/pre-commit:3.6.0
+
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
 
       - name: Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: .pre-commit-cache
           key: static-checks-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      # git checkout is not creating a working git folder, it has dubious ownership if not configured
+      # The pre-commit hook will not work on this original git folder
+      # https://github.com/pre-commit/pre-commit/issues/2125
+      - name: fix git
+        run: git config --system --add safe.directory '*'
 
       - run: mkdir -p .pre-commit-cache
       - run: pre-commit install --install-hooks
