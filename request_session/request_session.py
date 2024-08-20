@@ -317,7 +317,7 @@ class RequestSession(object):
         max_runs = 1 + (self.max_retries if max_retries is None else max_retries)
         run, retries_on_econnreset = 0, 0
         # this will set maximum number of retries to max_runs where econnreset retries
-        # are not counting and maximum number of of retries on econnreset is also
+        # are not counting and maximum number of retries on econnreset is also
         # set to max_runs
         while run < max_runs + retries_on_econnreset:
             run += 1
@@ -480,11 +480,13 @@ class RequestSession(object):
         """
         extra_params = (
             {
-                "request_params": {
-                    k: v
-                    for k, v in deepcopy(request_params).items()
-                    if k not in self.request_param_logging_blacklist
-                },
+                "request_params": json.dumps(
+                    {
+                        k: v
+                        for k, v in deepcopy(request_params).items()
+                        if k not in self.request_param_logging_blacklist
+                    }
+                ),
                 "response_text": self.get_response_text(response),
             }
             if self.verbose_logging
@@ -557,11 +559,11 @@ class RequestSession(object):
         # type: (...) -> None
         """Assign appropriate metric and log for exception.
 
-        :param requests.RequestException error: exception that occured
+        :param requests.RequestException error: exception that occurred
         :param str request_category: String describing request category.
         :param Dict request_params: Parameters used to make the HTTP call.
         :param List[str] dd_tags: Tags to increment metric with.
-        :param Union[int, None] Status_code: HTTP status code of the response.
+        :param Union[int, None] status_code: HTTP status code of the response.
         """
         tags = ["status:error"]
 
@@ -586,7 +588,13 @@ class RequestSession(object):
             tags.append("error:request_exception")
 
         if self.verbose_logging is True:
-            extra_params["request_params"] = json.dumps(request_params)
+            extra_params["request_params"] = json.dumps(
+                {
+                    k: v
+                    for k, v in deepcopy(request_params).items()
+                    if k not in self.request_param_logging_blacklist
+                }
+            )
 
         self.log(
             "exception",
