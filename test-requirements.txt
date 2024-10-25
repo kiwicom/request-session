@@ -39,11 +39,13 @@ jsonschema==4.23.0
 jsonschema-specifications==2023.12.1
     # via jsonschema
 markupsafe==2.1.5
-    # via jinja2
+    # via
+    #   jinja2
+    #   werkzeug
 mistune==3.0.2
     # via flasgger
 more-itertools==10.4.0
-    # via -r ./test-requirements.in
+    # via -r test-requirements.in
 packaging==24.1
     # via
     #   flasgger
@@ -54,15 +56,15 @@ pycparser==2.22
     # via cffi
 pytest==8.3.2
     # via
-    #   -r ./test-requirements.in
+    #   -r test-requirements.in
     #   pytest-cov
     #   pytest-mock
 pytest-cov==5.0.0
-    # via -r ./test-requirements.in
+    # via -r test-requirements.in
 pytest-httpbin==2.0.0
-    # via -r ./test-requirements.in
+    # via -r test-requirements.in
 pytest-mock==3.14.0
-    # via -r ./test-requirements.in
+    # via -r test-requirements.in
 pyyaml==6.0.2
     # via flasgger
 referencing==0.35.1
@@ -78,9 +80,9 @@ six==1.16.0
     #   flasgger
     #   httpbin
 structlog==24.4.0
-    # via -r ./test-requirements.in
-werkzeug==2.0.3
+    # via -r test-requirements.in
+werkzeug==3.0.6
     # via
-    #   -r ./test-requirements.in
+    #   -r test-requirements.in
     #   flask
     #   httpbin
