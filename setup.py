@@ -13,7 +13,7 @@ with open("test-requirements.in", encoding="utf-8") as f:
 
 setup(
     name="request_session",
-    version="0.16.2",
+    version="0.16.3",
     url="https://github.com/kiwicom/request-session",
     description="Python HTTP requests on steroids",
     long_description=readme,
