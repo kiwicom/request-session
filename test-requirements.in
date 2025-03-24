@@ -1,7 +1,8 @@
+greenlet==3.1.1  # httpbin adds older version, we need newer
 pytest
 pytest-cov
 pytest-httpbin
 pytest-mock
 more-itertools
 structlog
-werkzeug==2.0.3
+werkzeug
