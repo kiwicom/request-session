@@ -1,7 +1,6 @@
-greenlet==3.1.1  # httpbin adds older version, we need newer
+flask
 pytest
 pytest-cov
-pytest-httpbin
 pytest-mock
 more-itertools
 structlog

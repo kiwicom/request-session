@@ -4,7 +4,6 @@ import itertools
 import sys
 from typing import Any, Callable, Dict, Iterator, List, Union
 
-import httpbin as Httpbin
 import pytest
 import requests
 
@@ -20,21 +19,20 @@ from request_session.protocols import Ddtrace, SentryClient, Statsd
 from ._compat import Mock
 
 REQUEST_CATEGORY = "test"  # this request category must match the one in conftest
-INTERNAL_ERROR_MSG = "500 Server Error: INTERNAL SERVER ERROR for url:"
-TIMEOUT_ERROR_MSG = "408 Client Error: REQUEST TIMEOUT for url:"
+INTERNAL_ERROR_MSG = "500 Server Error:"
+TIMEOUT_ERROR_MSG = "408 Client Error:"
 DDTRACE_ERROR_MSG = "Ddtrace must be provided in order to report to datadog service."
 USER_AGENT_ERROR_MSG = "Provided User-Agent string is not valid."
 
 
-def test_init(mocker, httpbin):
-    # type: (Mock, Httpbin) -> None
+def test_init(mocker, test_server):
     """Test initialization of RequestSession."""
     mock_ddtrace = mocker.Mock(spec_set=Ddtrace)
     mock_tracing_config: dict = {}
     mock_ddtrace.config.get_from.return_value = mock_tracing_config
 
     session = RequestSession(
-        host=httpbin.url,
+        host=test_server,
         request_category=REQUEST_CATEGORY,
         max_retries=3,
         user_agent="UserAgent",
@@ -42,7 +40,7 @@ def test_init(mocker, httpbin):
         headers={},
         auth=("user", "passwd"),
     )
-    assert session.host == httpbin.url
+    assert session.host == test_server
     assert session.request_category == REQUEST_CATEGORY
     assert session.max_retries == 3
     assert session.user_agent == "UserAgent"
@@ -172,10 +170,9 @@ def test_method(request_session, method, path, expected_status):
         (505, HTTPError),
     ],
 )
-def test_raise_for_status(mocker, httpbin, status_code, raises):
-    # type: (Mock, Httpbin, int, Exception) -> None
+def test_raise_for_status(mocker, test_server, status_code, raises):
     """Test raising of an exception when rejected with 4xx."""
-    session = RequestSession(host=httpbin.url, request_category=REQUEST_CATEGORY)
+    session = RequestSession(host=test_server, request_category=REQUEST_CATEGORY)
     mock_sys = mocker.patch("request_session.utils.sys", spec_set=sys)
     mock_sys.exc_info.return_value = (HTTPError, HTTPError(), "fake_traceback")
     if raises:
@@ -208,9 +205,9 @@ def test_raise_for_status(mocker, httpbin, status_code, raises):
     ],
 )
 def test_econnreset_error(
-    httpbin, mocker, exceptions, max_retries, expected_call_count
+    test_server, mocker, exceptions, max_retries, expected_call_count
 ):
-    # type: (Httpbin, Mock, Iterator[Exception], int, int) -> None
+    # type: (str, Mock, Iterator[Exception], int, int) -> None
     used_sessions = []
 
     def _prepare_new_session(self):  # type: ignore
@@ -221,7 +218,7 @@ def test_econnreset_error(
         used_sessions.append(self.session)
 
     client = RequestSession(
-        host=httpbin.url, max_retries=max_retries, request_category=REQUEST_CATEGORY
+        host=test_server, max_retries=max_retries, request_category=REQUEST_CATEGORY
     )
     mock_log = mocker.Mock(autospec=True)
     mock_exception_log_and_metrics = mocker.Mock(
@@ -369,9 +366,9 @@ def test_metric_increment(
     mock_statsd.increment.assert_has_calls(calls)
 
 
-def test_get_request_category(httpbin):
-    # type: (Httpbin) -> None
-    client = RequestSession(host=httpbin.url)
+def test_get_request_category(test_server):
+    """Test getting request category."""
+    client = RequestSession(host=test_server)
 
     with pytest.raises(
         AttributeError, match="`request_category` is required parameter."
@@ -463,8 +460,8 @@ def test_send_request(request_session, mocker, inputs, expected):
     )
 
 
-def test_sleep(httpbin, mocker):
-    # type: (Httpbin, Mock) -> None
+def test_sleep(test_server, mocker):
+    """Test sleep functionality."""
     seconds = 1
     tags = ["testing:sleep"]
     meta = {"request_category": REQUEST_CATEGORY, "testing": "sleep"}
@@ -472,7 +469,7 @@ def test_sleep(httpbin, mocker):
     mock_traced_sleep = mocker.patch(
         "request_session.request_session.traced_sleep", autospec=True
     )
-    client = RequestSession(host=httpbin.url, ddtrace=mock_ddtrace)
+    client = RequestSession(host=test_server, ddtrace=mock_ddtrace)
     client.sleep(seconds, REQUEST_CATEGORY, tags)
 
     mock_traced_sleep.assert_called_once_with(
