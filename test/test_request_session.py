@@ -456,7 +456,7 @@ def test_send_request(request_session, mocker, inputs, expected):
     )
 
     assert isinstance(response, requests.Response)
-    mock_statsd.timed.assert_called_once_with(
+    mock_statsd.distributed.assert_called_once_with(
         f"{client.request_category}.response_time",
         use_ms=True,
         tags=inputs["tags"],

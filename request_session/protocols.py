@@ -186,6 +186,34 @@ class Statsd(object):
                 statsd.timing('user.query.time', time.time() - start)
         """
 
+    def distributed(self, metric=None, tags=None, sample_rate=None, use_ms=None):
+        """A decorator or context manager that will measure the distribution of a function's/context's run time.
+
+        A decorator or context manager that will measure the distribution of a
+        function's/context's run time using custom metric distribution.
+        Optionally specify a list of tags or a sample rate. If the metric is not
+        defined as a decorator, the module name and function name will be used.
+        The metric is required as a context manager.
+        ::
+
+            @statsd.distributed("user.query.time", sample_rate=0.5)
+            def get_user(user_id):
+                # Do what you need to ...
+                pass
+
+            # Is equivalent to ...
+            with statsd.distributed("user.query.time", sample_rate=0.5):
+                # Do what you need to ...
+                pass
+
+            # Is equivalent to ...
+            start = time.time()
+            try:
+                get_user(user_id)
+            finally:
+                statsd.distribution("user.query.time", time.time() - start)
+        """
+
 
 class TimedContextManagerDecorator(object):
     """TimedContextManagerDecorator protocol."""
