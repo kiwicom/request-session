@@ -54,6 +54,8 @@ class RequestSession(object):
         ``requests.Session`` to be used to make the HTTP requests.
     :param Ddtrace ddtrace: (optional) DataDog function to be used to trace, track and
         send metrics for individual HTTP requests.
+    :param bool datadog_errors: (optional) If true, errors will be sent to DataDog.
+        Defaults to ``False``.
     :param str ddtrace_service_name: (optional) Service name passed to DataDog DdTrace. Set to "booking_api_requests"
         by default.
     :param Statsd statsd: (optional) Datadog module to log metrics.
@@ -84,6 +86,7 @@ class RequestSession(object):
         user_agent=None,  # type: Optional[str]
         user_agent_components=None,  # type: Optional[UserAgentComponents]
         ddtrace=None,  # type: Optional[Ddtrace]
+        datadog_errors=False,  # type: bool
         statsd=None,  # type: Optional[Statsd]
         sentry_client=None,  # type: Optional[SentryClient]
         logger=None,  # type: Optional[Callable]
@@ -118,6 +121,7 @@ class RequestSession(object):
         self.user_agent_components = user_agent_components
         self.ddtrace = ddtrace
         self.ddtrace_service_name = ddtrace_service_name
+        self.datadog_errors = datadog_errors
         self.statsd = statsd
         self.sentry_client = sentry_client
         self.logger = logger
@@ -404,21 +408,28 @@ class RequestSession(object):
                 else:
                     # Client error, request is not valid and server rejected it with
                     # http 4xx, but not timeout, there is no point in retrying.
-                    if report and self.sentry_client is not None:
+                    if report:
                         response_text = self.get_response_text(response)
                         extra_data = (
                             {"response_text": response_text}
                             if response_text != ""
                             else None
                         )
-                        if callable(
-                            getattr(self.sentry_client, "capture_exception", None)
-                        ):
-                            self.sentry_client.capture_exception(extras=extra_data)
-                        elif callable(
-                            getattr(self.sentry_client, "captureException", None)
-                        ):
-                            self.sentry_client.captureException(extra=extra_data)
+
+                        if self.sentry_client is not None:
+                            if callable(
+                                getattr(self.sentry_client, "capture_exception", None)
+                            ):
+                                self.sentry_client.capture_exception(extras=extra_data)
+                            elif callable(
+                                getattr(self.sentry_client, "captureException", None)
+                            ):
+                                self.sentry_client.captureException(extra=extra_data)
+
+                        if self.datadog_errors and self.ddtrace is not None:
+                            span = self.ddtrace.tracer.current_span()
+                            if span:
+                                span.record_exception(error, extra_data)
 
                     if raise_for_status:
                         raise RequestSessionException(  # pylint: disable=raise-missing-from
