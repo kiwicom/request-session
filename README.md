@@ -4,7 +4,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 **`request-session`** is an HTTP library built on top of [`requests`](https://requests.kennethreitz.org/en/master/)
-that makes your live easier by retrying whenever a request fails,
+that makes your life easier by retrying whenever a request fails,
 logs the results or even sends metrics and traces to DataDogHQ.
 **RequestSession** also measures the time of the request.
 
