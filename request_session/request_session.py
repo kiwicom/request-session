@@ -139,7 +139,7 @@ class RequestSession(object):
         self.session = requests.Session()
         self.session_instances.append(self.session)
 
-        adapter = requests.adapters.HTTPAdapter(max_retries=1)
+        adapter = requests.adapters.HTTPAdapter()
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
